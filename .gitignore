@@ -4,3 +4,6 @@ dataset/raw_docs/Preso/
 dataset/raw_docs/Solto/
 .idea/
 *.log
+__pyc
+**/__pycache__/
+.ipynb_checkpoints/
