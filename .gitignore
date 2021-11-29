@@ -1,4 +1,6 @@
-dataset/planilha/Classes_Atributos.xlsx
+dataset/planilha/*.xlsx
+dataset/planilha/*.csv
 dataset/raw_docs/Preso/
 dataset/raw_docs/Solto/
 .idea/
+*.log
