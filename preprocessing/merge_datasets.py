@@ -53,9 +53,17 @@ def unify_attrib_worksheets():
     excel_file_crimes = pd.ExcelFile(PATH_PLANILHA_CRIMES)
     crimes_df = excel_file_crimes.parse("Inferidos")
     crimes_df["Número do doc"] =crimes_df["Número do doc"].apply(lambda x: x.upper())
-    df_sample = crimes_df.sample(n=10)
 
-    final_df = merged_auto_df.merge(crimes_df, how="left", on="Número do doc")
+    relator_list = sorted(set(crimes_df["Relator"]))
+
+    df_sample = crimes_df.sample(n=10)
+    print(df_sample.head(n=10))
+    print(relator_list)
+    merged_crime_df = merged_auto_df.merge(crimes_df, how="left", on="Número do doc")
+
+    excel_file_content = pd.ExcelFile(PATH_PLANILHA_RAW_TEXT.replace("@ext", "xlsx"))
+    content_df = excel_file_content.parse("Sheet1")
+    final_df = merged_crime_df.merge(content_df, how="left", on="Número do doc")
 
     # Merge text from docs
     final_df.to_csv(PATH_PLANILHA_ATTRIB_EXPERT.replace("@ext", "csv"), index=False)
@@ -91,8 +99,8 @@ def merge_text_files_into_spreadsheet():
 
     df = pd.DataFrame(final_data, columns=[
         "Número do doc",
-        "Resultado",
-        "Caminho Arquivo",
+        "Resultado Doc",
+        "Caminho Doc",
         "Conteúdo"
     ])
 
@@ -102,7 +110,5 @@ def merge_text_files_into_spreadsheet():
 
 def merge_datasets():
     logging.info("Merging datasets")
-    unify_attrib_worksheets()
     merge_text_files_into_spreadsheet()
-
-    # TODO: append crimes into attrib worksheet
+    unify_attrib_worksheets()
