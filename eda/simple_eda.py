@@ -5,7 +5,7 @@ import logging
 
 import pandas as pd
 import seaborn as sns
-from util.constants import PATH_PLANILHA_ATRIBUTOS
+from util.constants import PATH_PLANILHA_ATRIBUTOS, PATH_PLANILHA_CRIMES, PATH_PLANILHA_ATTRIB_EXPERT
 
 import matplotlib.pyplot as plt
 import warnings
@@ -44,7 +44,7 @@ def simple_eda():
     """
 
     # Loading workbook
-    excel_file = pd.ExcelFile(PATH_PLANILHA_ATRIBUTOS)
+    excel_file = pd.ExcelFile(PATH_PLANILHA_ATTRIB_EXPERT.replace("@ext", ".xlsx"))
 
     logging.info("Available Worksheets")
     sheet_names = excel_file.sheet_names
@@ -81,7 +81,7 @@ def simple_eda():
 
     logging.info("-" * 50)
     logging.info("Analysis for the worksheet 'metadata_import'")
-    df = excel_file.parse("metadata_import")
+    # df = excel_file.parse("metadata_import")
     df = df.sort_values(by='origem')
     logging.info("Columns and types")
     logging.info(df.info())
