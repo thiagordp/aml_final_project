@@ -47,7 +47,15 @@ def unify_attrib_worksheets():
     autoextract_attrib["Número do doc"] = autoextract_attrib["Número do doc"].apply(lambda x: x.upper())
 
     # Merge columns based on "Número do doc" column
-    final_df = merged_df.merge(autoextract_attrib, on="Número do doc")
+    merged_auto_df = merged_df.merge(autoextract_attrib, on="Número do doc")
+
+    print("-"*50)
+    excel_file_crimes = pd.ExcelFile(PATH_PLANILHA_CRIMES)
+    crimes_df = excel_file_crimes.parse("Inferidos")
+    crimes_df["Número do doc"] =crimes_df["Número do doc"].apply(lambda x: x.upper())
+    df_sample = crimes_df.sample(n=10)
+
+    final_df = merged_auto_df.merge(crimes_df, how="left", on="Número do doc")
 
     # Merge text from docs
     final_df.to_csv(PATH_PLANILHA_ATTRIB_EXPERT.replace("@ext", "csv"), index=False)
