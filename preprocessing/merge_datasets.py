@@ -10,7 +10,7 @@ import time
 
 import pandas as pd
 
-from util.constants import PATH_PLANILHA_ATRIBUTOS, PATH_PLANILHA_CRIMES, PATH_PLANILHA_ATTRIB_EXPERT, PATH_RAW_DOCS, PATH_PLANILHA_RAW_TEXT
+from util.constants import PATH_PLANILHA_ATRIBUTOS, PATH_PLANILHA_CRIMES, PATH_PLANILHA_ATTRIB_EXPERT, PATH_RAW_DOCS, PATH_PLANILHA_RAW_TEXT, PATH_METADATA
 
 
 def unify_attrib_worksheets():
@@ -43,22 +43,23 @@ def unify_attrib_worksheets():
     merged_df["Número do doc"] = merged_df["Número do doc"].apply(lambda x: x.upper())
 
     # Get df from worksheet of attrib extracted via scraping
-    autoextract_attrib = excel_file_attrib.parse("metadata_import")
+    autoextract_attrib = pd.read_csv(PATH_METADATA, sep=";")
     autoextract_attrib["Número do doc"] = autoextract_attrib["Número do doc"].apply(lambda x: x.upper())
+    autoextract_attrib["data_documento"] = autoextract_attrib["data_documento"].apply(lambda x: str(x))
 
     # Merge columns based on "Número do doc" column
     merged_auto_df = merged_df.merge(autoextract_attrib, on="Número do doc")
 
-    print("-"*50)
+    print("-" * 50)
     excel_file_crimes = pd.ExcelFile(PATH_PLANILHA_CRIMES)
     crimes_df = excel_file_crimes.parse("Inferidos")
-    crimes_df["Número do doc"] =crimes_df["Número do doc"].apply(lambda x: x.upper())
+    crimes_df["Número do doc"] = crimes_df["Número do doc"].apply(lambda x: x.upper())
 
     relator_list = sorted(set(crimes_df["Relator"]))
 
     df_sample = crimes_df.sample(n=10)
-    print(df_sample.head(n=10))
-    print(relator_list)
+    #print(df_sample.head(n=10))
+    #print(relator_list)
     merged_crime_df = merged_auto_df.merge(crimes_df, how="left", on="Número do doc")
 
     excel_file_content = pd.ExcelFile(PATH_PLANILHA_RAW_TEXT.replace("@ext", "xlsx"))

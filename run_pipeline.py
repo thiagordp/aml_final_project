@@ -7,19 +7,16 @@ File to run all the pipeline from this project.
 
 @date Nov 26,2021
 """
-
-import logging
-import pandas as pd
-
-from eda.simple_eda import simple_eda
 from preprocessing.merge_datasets import merge_datasets
-from run_preprocessing import run_preprocessing
+from preprocessing.preprocess_spreadsheets import preprocess_spreadsheets_part_i
 from util.setup_logging import setup_logging
 
 
 def run_pipeline():
-    #simple_eda()
+    # simple_eda()
     merge_datasets()
+
+    preprocess_spreadsheets_part_i()
 
 
 if __name__ == '__main__':
