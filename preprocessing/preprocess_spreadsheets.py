@@ -73,6 +73,14 @@ def rename_columns(df: pd.DataFrame):
 def process_col_values(df: pd.DataFrame):
     df["Relator"] = df["Relator"].apply(lambda x: str(x).upper())
     df["Enquadramento"] = df["Enquadramento"].apply(lambda x: str(x).upper())
+    df["Enquadramento"] = df["Enquadramento"].replace(["NAN"], "DESCONHECIDO")
+
+    df['data_documento'] = pd.to_datetime(df['data_documento'])
+
+    df['ano_documento'] = df['data_documento'].dt.year
+
+    nulls = df.isnull().sum()
+    print("Null columns\n",nulls[nulls > 0])
 
     return df
 

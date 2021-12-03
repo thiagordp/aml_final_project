@@ -7,6 +7,7 @@ File to run all the pipeline from this project.
 
 @date Nov 26,2021
 """
+from eda.after_proc_eda import eda_after_proc_part_i
 from preprocessing.merge_datasets import merge_datasets
 from preprocessing.preprocess_spreadsheets import preprocess_spreadsheets_part_i
 from util.setup_logging import setup_logging
@@ -14,9 +15,10 @@ from util.setup_logging import setup_logging
 
 def run_pipeline():
     # simple_eda()
-    merge_datasets()
+    #merge_datasets()
 
     preprocess_spreadsheets_part_i()
+    eda_after_proc_part_i()
 
 
 if __name__ == '__main__':
