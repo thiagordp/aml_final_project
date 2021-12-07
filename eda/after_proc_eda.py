@@ -6,10 +6,13 @@ EDA after preprocessing part I
 import os
 
 import pandas as pd
+import tqdm
 from matplotlib import pyplot as plt
 import seaborn as sns
+from wordcloud import WordCloud
 
-from util.constants import PATH_PLANILHA_PROC, PATH_OUTPUT_EDA
+from preprocessing.preprocess_raw_documents import raw_text_preprocessing, preprocess_text
+from util.constants import PATH_PLANILHA_PROC, PATH_OUTPUT_EDA, PATH_RAW_DOCS
 
 
 def most_frequent_crimes():
@@ -165,19 +168,96 @@ def most_frequent_rappourter_by_label():
     for label in sorted(dict_rappourter.keys()):
         for rapp in sorted(dict_rappourter[label].keys()):
             data.append([rapp, label, dict_rappourter[label][rapp]])
-    df = pd.DataFrame(data, columns=["Relator","Resultado", "Contagem"])
+    df = pd.DataFrame(data, columns=["Relator", "Resultado", "Contagem"])
     fig, axes = plt.subplots(1, 1, figsize=(14, 9))
 
     plt.title("Rapporteur Histogram by Label")
-    sns.barplot(data=df, x="Contagem", y="Relator",hue="Resultado", ax=axes)
+    sns.barplot(data=df, x="Contagem", y="Relator", hue="Resultado", ax=axes)
     plt.tight_layout()
     out_path = os.path.join(PATH_OUTPUT_EDA, "histogram_rappourter_label.png")
     plt.savefig(out_path, dpi=200)
     plt.show()
 
 
+def bag_of_words(preprocess_text=True):
+    """We used the same function for before and after processing to avoid duplicating code."""
+
+    dict_text = {}
+    string_label_preso = ""
+    string_label_solto = ""
+    string_full = ""
+
+    for root, dirs, files in os.walk(PATH_RAW_DOCS, topdown=False):
+
+        if root not in dict_text.keys():
+            dict_text[root] = ""
+
+        for name in tqdm.tqdm(files):
+            raw_doc_path = os.path.join(root, name)
+            splits_path = raw_doc_path.split(os.sep)
+
+            if len(splits_path) != 4:
+                continue
+
+            with open(raw_doc_path) as fp:
+
+                if preprocess_text:
+                    content = []
+                    for line in fp:
+                        lower_text = line.lower()
+                        # TODO: place inside a 'remove line' code
+                        if not lower_text.startswith("documento digital") and not lower_text.startswith("documento pode ser acessado no endereço") and \
+                                len(lower_text.split()) > 3:
+                            content.append(lower_text)
+
+                    text = "\n".join(content)
+                else:
+                    text = fp.read()
+
+            # print(root)
+            if root.endswith("Preso"):
+                string_label_preso += text + "\n"
+            else:
+                string_label_solto += text + "\n"
+            string_full += text + "\n"
+
+    if preprocess_text:
+        string_full = raw_text_preprocessing(string_full)
+        string_label_preso = raw_text_preprocessing(string_label_preso)
+        string_label_solto = raw_text_preprocessing(string_label_solto)
+
+        outpath_full = os.path.join(PATH_OUTPUT_EDA, "wordcloud_full_with_preproc.png")
+        outpath_preso = os.path.join(PATH_OUTPUT_EDA, "wordcloud_preso_with_preproc.png")
+        outpath_solto = os.path.join(PATH_OUTPUT_EDA, "wordcloud_solto_with_preproc.png")
+    else:
+        outpath_full = os.path.join(PATH_OUTPUT_EDA, "wordcloud_full_without_preproc.png")
+        outpath_preso = os.path.join(PATH_OUTPUT_EDA, "wordcloud_preso_without_preproc.png")
+        outpath_solto = os.path.join(PATH_OUTPUT_EDA, "wordcloud_solto_without_preproc.png")
+
+    _generate_word_cloud(string_full, out_path=outpath_full)
+    _generate_word_cloud(string_label_preso, out_path=outpath_preso)
+    _generate_word_cloud(string_label_solto, out_path=outpath_solto)
+
+
+def _generate_word_cloud(text, out_path):
+    print("Generating word cloud for ", out_path)
+    wordcloud = WordCloud(
+        background_color='white', collocations=False, normalize_plurals=False).generate(str(text))
+    fig = plt.figure(
+        figsize=(16, 9))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    plt.tight_layout()
+
+    plt.savefig(out_path, dpi=200)
+
+    plt.show()
+    print("Finished")
+
+
 def eda_after_proc_part_i():
-    most_frequent_crimes()
-    most_frequent_crimes_by_year()
-    most_frequent_rappourter()
-    most_frequent_rappourter_by_label()
+    # most_frequent_crimes()
+    # most_frequent_crimes_by_year()
+    # most_frequent_rappourter()
+    # most_frequent_rappourter_by_label()
+    bag_of_words(preprocess_text=True)

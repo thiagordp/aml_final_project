@@ -103,6 +103,7 @@ def simple_eda():
     plt.savefig("eda/rapporteur_isabela.png")
     plt.show()
 
+
     # Central tendency
 
     # See bag of words
