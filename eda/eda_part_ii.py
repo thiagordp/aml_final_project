@@ -12,7 +12,7 @@ import seaborn as sns
 from wordcloud import WordCloud
 
 from preprocessing.preprocess_raw_documents import raw_text_preprocessing, preprocess_text
-from util.constants import PATH_PLANILHA_PROC, PATH_OUTPUT_EDA, PATH_RAW_DOCS
+from util.constants import PATH_PLANILHA_PROC, PATH_OUTPUT_EDA_II, PATH_RAW_DOCS, PATH_OUTPUT_EDA_I
 
 
 def most_frequent_crimes():
@@ -43,7 +43,7 @@ def most_frequent_crimes():
             data.append([label, crime, dict_crimes[label][crime]])
 
     df = pd.DataFrame(data, columns=["Resultado", 'Crime', 'Contagem'])
-    out_path = os.path.join(PATH_OUTPUT_EDA, "crimes_count.xlsx")
+    out_path = os.path.join(PATH_OUTPUT_EDA_II, "crimes_count.xlsx")
     df.to_excel(out_path, index=False)
 
     fig, ax = plt.subplots(figsize=(15, 7))
@@ -56,7 +56,7 @@ def most_frequent_crimes():
     sns.despine()
     plt.tight_layout()
 
-    out_path = os.path.join(PATH_OUTPUT_EDA, "crimes_count_label.png")
+    out_path = os.path.join(PATH_OUTPUT_EDA_II, "crimes_count_label.png")
     plt.savefig(out_path, dpi=200)
 
 
@@ -95,7 +95,7 @@ def most_frequent_crimes_by_year():
             data.append([year, crime, dict_crimes[year][crime]])
 
     df = pd.DataFrame(data, columns=["ano", "crime", "contagem"])
-    out_path = os.path.join(PATH_OUTPUT_EDA, "crimes_count_year.xlsx")
+    out_path = os.path.join(PATH_OUTPUT_EDA_II, "crimes_count_year.xlsx")
     df.to_excel(out_path, index=False)
 
     fig, ax = plt.subplots(figsize=(17, 8))
@@ -113,7 +113,7 @@ def most_frequent_crimes_by_year():
     plt.tight_layout()
     plt.legend([], [], frameon=False)
 
-    out_path = os.path.join(PATH_OUTPUT_EDA, "crimes_count_year.png")
+    out_path = os.path.join(PATH_OUTPUT_EDA_II, "crimes_count_year.png")
     plt.savefig(out_path, dpi=200)
 
 
@@ -141,7 +141,7 @@ def most_frequent_rappourter():
     plt.title("Rapporteur Histogram")
     sns.barplot(data=df, x="Contagem", y="Relator", ax=axes, palette=sns.color_palette(['#1f77b4']))
     plt.tight_layout()
-    out_path = os.path.join(PATH_OUTPUT_EDA, "histogram_rappourter.png")
+    out_path = os.path.join(PATH_OUTPUT_EDA_II, "histogram_rappourter.png")
     plt.savefig(out_path, dpi=200)
     plt.show()
 
@@ -174,7 +174,7 @@ def most_frequent_rappourter_by_label():
     plt.title("Rapporteur Histogram by Label")
     sns.barplot(data=df, x="Contagem", y="Relator", hue="Resultado", ax=axes)
     plt.tight_layout()
-    out_path = os.path.join(PATH_OUTPUT_EDA, "histogram_rappourter_label.png")
+    out_path = os.path.join(PATH_OUTPUT_EDA_II, "histogram_rappourter_label.png")
     plt.savefig(out_path, dpi=200)
     plt.show()
 
@@ -226,13 +226,13 @@ def bag_of_words(preprocess_text=True):
         string_label_preso = raw_text_preprocessing(string_label_preso)
         string_label_solto = raw_text_preprocessing(string_label_solto)
 
-        outpath_full = os.path.join(PATH_OUTPUT_EDA, "wordcloud_full_with_preproc.png")
-        outpath_preso = os.path.join(PATH_OUTPUT_EDA, "wordcloud_preso_with_preproc.png")
-        outpath_solto = os.path.join(PATH_OUTPUT_EDA, "wordcloud_solto_with_preproc.png")
+        outpath_full = os.path.join(PATH_OUTPUT_EDA_II, "wordcloud_full_with_preproc.png")
+        outpath_preso = os.path.join(PATH_OUTPUT_EDA_II, "wordcloud_preso_with_preproc.png")
+        outpath_solto = os.path.join(PATH_OUTPUT_EDA_II, "wordcloud_solto_with_preproc.png")
     else:
-        outpath_full = os.path.join(PATH_OUTPUT_EDA, "wordcloud_full_without_preproc.png")
-        outpath_preso = os.path.join(PATH_OUTPUT_EDA, "wordcloud_preso_without_preproc.png")
-        outpath_solto = os.path.join(PATH_OUTPUT_EDA, "wordcloud_solto_without_preproc.png")
+        outpath_full = os.path.join(PATH_OUTPUT_EDA_I, "wordcloud_full_without_preproc.png")
+        outpath_preso = os.path.join(PATH_OUTPUT_EDA_I, "wordcloud_preso_without_preproc.png")
+        outpath_solto = os.path.join(PATH_OUTPUT_EDA_I, "wordcloud_solto_without_preproc.png")
 
     _generate_word_cloud(string_full, out_path=outpath_full)
     _generate_word_cloud(string_label_preso, out_path=outpath_preso)
@@ -242,14 +242,14 @@ def bag_of_words(preprocess_text=True):
 def _generate_word_cloud(text, out_path):
     print("Generating word cloud for ", out_path)
     wordcloud = WordCloud(
-        background_color='white', collocations=False, normalize_plurals=False).generate(str(text))
+        background_color='white', collocations=False, normalize_plurals=False, width=1600, height=900).generate(str(text))
     fig = plt.figure(
         figsize=(16, 9))
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis('off')
     plt.tight_layout()
 
-    plt.savefig(out_path, dpi=200)
+    plt.savefig(out_path)
 
     plt.show()
     print("Finished")

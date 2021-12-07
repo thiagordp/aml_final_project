@@ -7,3 +7,5 @@ dataset/raw_docs/Solto/
 __pyc
 **/__pycache__/
 .ipynb_checkpoints/
+results/eda_i/
+results/eda_ii/

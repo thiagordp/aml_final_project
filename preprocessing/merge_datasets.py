@@ -58,8 +58,7 @@ def unify_attrib_worksheets():
     relator_list = sorted(set(crimes_df["Relator"]))
 
     df_sample = crimes_df.sample(n=10)
-    #print(df_sample.head(n=10))
-    #print(relator_list)
+
     merged_crime_df = merged_auto_df.merge(crimes_df, how="left", on="Número do doc")
 
     excel_file_content = pd.ExcelFile(PATH_PLANILHA_RAW_TEXT.replace("@ext", "xlsx"))
