@@ -330,10 +330,10 @@ def _generate_word_cloud(text, out_path):
 
 
 def eda_part_ii():
-    # most_frequent_crimes()
-    # most_frequent_crimes_by_year()
-    # most_frequent_rappourter()
-    # most_frequent_rappourter_by_label()
-    # most_frequent_subjects()
+    most_frequent_crimes()
+    most_frequent_crimes_by_year()
+    most_frequent_rappourter()
+    most_frequent_rappourter_by_label()
+    most_frequent_subjects()
     crimes_per_document_per_label()
     bag_of_words(preprocess_text=True)
