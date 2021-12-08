@@ -4,6 +4,7 @@ EDA after preprocessing part I
 @date December 02, 2021
 """
 import os
+from collections import Counter
 
 import pandas as pd
 import tqdm
@@ -179,6 +180,78 @@ def most_frequent_rappourter_by_label():
     plt.show()
 
 
+def most_frequent_subjects():
+    df = pd.read_csv(PATH_PLANILHA_PROC.replace("@ext", "csv"))
+    print("-" * 50)
+    print("Most frequent subjects")
+
+    list_subject = list(df["assuntos"])
+
+    dict_subject = {}
+    for rapp in list_subject:
+        tokens = [token.replace("\n", " / ").strip() for token in rapp.split("|")]
+        # print(tokens)
+
+        for token in tokens:
+
+            if token not in sorted(dict_subject.keys()):
+                dict_subject[token] = 1
+            else:
+                dict_subject[token] += 1
+    k = Counter(dict_subject)
+
+    # Finding 3 highest values
+    high = k.most_common(20)
+    data = []
+
+    for key in high:
+        data.append([key[0], key[1]])
+
+    df = pd.DataFrame(data, columns=["Assunto", "Contagem"])
+    fig, ax = plt.subplots(1, 1, figsize=(14, 9))
+    ax.grid(ls="--")
+    plt.title("Rapporteur Histogram")
+    sns.barplot(data=df, x="Contagem", y="Assunto", ax=ax, palette=sns.color_palette(['#1f77b4']))
+
+    plt.tight_layout()
+    out_path = os.path.join(PATH_OUTPUT_EDA_II, "histogram_assunto.png")
+    plt.savefig(out_path, dpi=200)
+    plt.show()
+
+
+def crimes_per_document_per_label():
+    df = pd.read_csv(PATH_PLANILHA_PROC.replace("@ext", "csv"))
+    print("-" * 50)
+    print("Violin plot of crimes per document by label")
+    print(df.describe())
+    print(df.info())
+
+    dict_rappourter = {}
+
+    for rapp, label in zip(df["Quant"], df["Resultado Doc"]):
+        if label not in dict_rappourter.keys():
+            dict_rappourter[label] = {}
+
+        if rapp not in dict_rappourter[label].keys():
+            dict_rappourter[label][rapp] = 1
+        else:
+            dict_rappourter[label][rapp] += 1
+
+    data = []
+    for label in sorted(dict_rappourter.keys()):
+        for rapp in sorted(dict_rappourter[label].keys()):
+            data.append([rapp, label, dict_rappourter[label][rapp]])
+    df = pd.DataFrame(data, columns=["Quant", "Resultado", "Contagem"])
+    fig, axes = plt.subplots(1, 1, figsize=(14, 9))
+
+    plt.title("Quantity Histogram by Label")
+    sns.barplot(data=df, y="Contagem", x="Quant", hue="Resultado", ax=axes)
+    plt.tight_layout()
+    out_path = os.path.join(PATH_OUTPUT_EDA_II, "histogram_crime_quant_label.png")
+    plt.savefig(out_path, dpi=200)
+    plt.show()
+
+
 def bag_of_words(preprocess_text=True):
     """We used the same function for before and after processing to avoid duplicating code."""
 
@@ -211,6 +284,7 @@ def bag_of_words(preprocess_text=True):
                             content.append(lower_text)
 
                     text = "\n".join(content)
+                    del content
                 else:
                     text = fp.read()
 
@@ -255,9 +329,11 @@ def _generate_word_cloud(text, out_path):
     print("Finished")
 
 
-def eda_after_proc_part_i():
+def eda_part_ii():
     # most_frequent_crimes()
     # most_frequent_crimes_by_year()
     # most_frequent_rappourter()
     # most_frequent_rappourter_by_label()
+    # most_frequent_subjects()
+    crimes_per_document_per_label()
     bag_of_words(preprocess_text=True)

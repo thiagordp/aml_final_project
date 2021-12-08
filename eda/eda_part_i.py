@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 warnings.filterwarnings("ignore", message="MatplotlibDeprecationWarning")
 
 
-def simple_eda():
+def eda_part_i():
     """
 
     """

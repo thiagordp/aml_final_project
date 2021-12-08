@@ -9,8 +9,8 @@ File to run all the pipeline from this project.
 """
 import logging
 
-from eda.eda_part_ii import eda_after_proc_part_i
-from eda.eda_part_i import simple_eda
+from eda.eda_part_ii import eda_part_ii
+from eda.eda_part_i import eda_part_i
 from preprocessing.merge_datasets import merge_datasets
 from preprocessing.preprocess_raw_documents import remove_result_from_documents, preprocess_text
 from preprocessing.preprocess_spreadsheets import preprocess_spreadsheets_part_i
@@ -21,7 +21,7 @@ def run_pipeline():
     # First EDA
     logging.info("-" * 50)
     logging.info("    DATA UNDERSTANDING PART I    ")
-    simple_eda()
+    eda_part_i()
 
     logging.info("-" * 50)
     logging.info("    DATA PREPARATION    ")
@@ -33,8 +33,9 @@ def run_pipeline():
 
     logging.info("-" * 50)
     logging.info("    DATA UNDERSTANDING PART II    ")
+
     # Second EDA
-    eda_after_proc_part_i()
+    eda_part_ii()
 
 
 if __name__ == '__main__':

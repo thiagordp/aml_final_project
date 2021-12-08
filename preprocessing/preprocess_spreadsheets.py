@@ -78,9 +78,11 @@ def process_col_values(df: pd.DataFrame):
     df['data_documento'] = pd.to_datetime(df['data_documento'])
 
     df['ano_documento'] = df['data_documento'].dt.year
+    df['assuntos'].fillna("Desconhecido", inplace=True)
+    df['Quant'].fillna(1, inplace=True)
 
     nulls = df.isnull().sum()
-    print("Null columns\n",nulls[nulls > 0])
+    print("Null columns\n", nulls[nulls > 0])
 
     return df
 
