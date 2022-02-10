@@ -4,6 +4,7 @@ EDA after preprocessing part I
 @date December 02, 2021
 """
 import os
+import time
 from collections import Counter
 
 import pandas as pd
@@ -13,15 +14,15 @@ import seaborn as sns
 from wordcloud import WordCloud
 
 from preprocessing.preprocess_raw_documents import raw_text_preprocessing, preprocess_text
-from util.constants import PATH_PLANILHA_PROC, PATH_OUTPUT_EDA_II, PATH_RAW_DOCS, PATH_OUTPUT_EDA_I
+from util.constants import PATH_PLANILHA_PROC, PATH_OUTPUT_EDA_II, PATH_RAW_DOCS, PATH_OUTPUT_EDA_I, DICT_TRANSLATE_LABEL, DICT_TRANSLATE_CRIME
 
 
 def most_frequent_crimes():
     df = pd.read_csv(PATH_PLANILHA_PROC.replace("@ext", "csv"))
     df["Enquadramento"] = df["Enquadramento"].replace(["NAN"], "OUTROS")
 
-    print(df.describe())
-    print(df.info())
+    # print(df.describe())
+    # print(df.info())
 
     list_crimes = list(df["Enquadramento"])
     list_labels = list(df["Resultado Doc"])
@@ -30,35 +31,45 @@ def most_frequent_crimes():
     dict_crimes = {}
 
     for crime_row, label in zip(list_crimes, list_labels):
-        if label not in dict_crimes.keys():
-            dict_crimes[label] = {}
+        value_label = DICT_TRANSLATE_LABEL[label]
+        if value_label not in dict_crimes.keys():
+            dict_crimes[value_label] = {}
 
         for crime in crime_row:
-            if crime in dict_crimes[label].keys():
-                dict_crimes[label][crime] += 1
-            else:
-                dict_crimes[label][crime] = 1
-    data = []
-    for label in dict_crimes.keys():
-        for crime in dict_crimes[label].keys():
-            data.append([label, crime, dict_crimes[label][crime]])
 
-    df = pd.DataFrame(data, columns=["Resultado", 'Crime', 'Contagem'])
+            crime_value = DICT_TRANSLATE_CRIME[crime]
+            if crime_value in dict_crimes[value_label].keys():
+                dict_crimes[value_label][crime_value] += 1
+            else:
+                dict_crimes[value_label][crime_value] = 1
+
+    print("List crimes", sorted(list(dict_crimes["Released"].keys())))
+    data = []
+    for value_label in dict_crimes.keys():
+        for crime in dict_crimes[value_label].keys():
+            data.append([value_label, crime, dict_crimes[value_label][crime]])
+
+    df = pd.DataFrame(data, columns=["Final Outcome", 'Crime', 'Count'])
+    df = df.sort_values(by="Crime")
+
     out_path = os.path.join(PATH_OUTPUT_EDA_II, "crimes_count.xlsx")
     df.to_excel(out_path, index=False)
 
-    fig, ax = plt.subplots(figsize=(15, 7))
+    fig, ax = plt.subplots(figsize=(10, 7))
 
     ax.grid(ls="--")
     sns.barplot(
         data=df,
-        y="Crime", x="Contagem", hue="Resultado"
+        y="Crime", x="Count", hue="Final Outcome",
+        palette="deep"
     )
     sns.despine()
     plt.tight_layout()
 
     out_path = os.path.join(PATH_OUTPUT_EDA_II, "crimes_count_label.png")
     plt.savefig(out_path, dpi=200)
+
+    time.sleep(50)
 
 
 def most_frequent_crimes_by_year():
@@ -87,15 +98,13 @@ def most_frequent_crimes_by_year():
             else:
                 dict_crimes[year_doc][crime] = 1
 
-    print(list_crimes)
-    print(dict_crimes)
-
     data = []
     for year in dict_crimes.keys():
         for crime in dict_crimes[year].keys():
             data.append([year, crime, dict_crimes[year][crime]])
 
     df = pd.DataFrame(data, columns=["ano", "crime", "contagem"])
+    df = df.sort_values(by="crime")
     out_path = os.path.join(PATH_OUTPUT_EDA_II, "crimes_count_year.xlsx")
     df.to_excel(out_path, index=False)
 
@@ -189,7 +198,8 @@ def most_frequent_subjects():
 
     dict_subject = {}
     for rapp in list_subject:
-        tokens = [token.replace("\n", " / ").strip() for token in rapp.split("|")]
+        rapp = rapp.replace("\n", "/").replace("/", "|")
+        tokens = [token.strip() for token in rapp.split("|")]
         # print(tokens)
 
         for token in tokens:
@@ -329,6 +339,13 @@ def _generate_word_cloud(text, out_path):
     print("Finished")
 
 
+def correlation_qty_crimes_result():
+
+
+
+    pass
+
+
 def eda_part_ii():
     most_frequent_crimes()
     most_frequent_crimes_by_year()
@@ -336,4 +353,5 @@ def eda_part_ii():
     most_frequent_rappourter_by_label()
     most_frequent_subjects()
     crimes_per_document_per_label()
+
     bag_of_words(preprocess_text=True)

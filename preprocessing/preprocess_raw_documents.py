@@ -1,9 +1,11 @@
 """
 
 """
+import datetime
 import json
 import logging
 import os
+import re
 
 import nltk
 import tqdm
@@ -29,7 +31,6 @@ def remove_result_from_documents():
                 content = []
                 with open(raw_doc_path, "r", encoding="utf8") as fp:
                     text = fp.read()
-
 
                 # string_to_split = "     VOTO"
                 string_to_split_extrato_ata = "EXTRATO DE ATA"
@@ -64,24 +65,63 @@ def _extract_judges(text):
     pass
 
 
-def raw_text_preprocessing(text, remove_stopword=True, stemming=False, lemmatization=False):
-    logging.info("Starting preprocessing (may take some minutes)")
+def raw_text_preprocessing(text, remove_stopword=True, stops=None, stemming=False, lemmatization=False):
     text = text.lower()
     tokens = nltk.word_tokenize(text)
     token_words = [w for w in tokens if w.isalpha()]
     if remove_stopword:
-        stops = set(stopwords.words('portuguese'))
+        if not stops:
+            stops = set(stopwords.words('portuguese'))
         token_words = [w for w in token_words if not w in stops]
 
     joined_words = (" ".join(token_words))
 
-    logging.info("Finished preprocessing")
     return joined_words
+
+
+def raw_corpus_preprocessing(corpus, remove_stopword=True, stemming=False, lemmatization=False):
+    stops = set(stopwords.words('portuguese'))
+    logging.info("Pre-processing corpus")
+    new_corpus = []
+    for text in tqdm.tqdm(corpus):
+        new_corpus.append(raw_text_preprocessing(text, remove_stopword=remove_stopword, stops=stops, stemming=stemming,
+                                                 lemmatization=lemmatization))
+    return new_corpus
+
+
+def check_dates():
+    oldest_file = ""
+    oldest_date = datetime.datetime(day=1, month=1, year=1900)
+    newest_file = ""
+    newest_date = datetime.datetime(day=1, month=1, year=2100)
+
+    for root, dirs, files in os.walk(PATH_RAW_DOCS, topdown=False):
+        dict_split = {}
+        for name in files:
+            raw_doc_path = os.path.join(root, name)
+            splits_path = raw_doc_path.split(os.sep)
+
+            if raw_doc_path.endswith("_proc.txt"):
+                os.remove(raw_doc_path)
+                continue
+
+            text = open(raw_doc_path, "r").read()
+
+            sub_text = " ".join(text.split()[:50])  # Date should be at the beginning of the file.
+            re_result = re.search("([0-9]{2}/[0-9]{2}/[0-9]{4})", sub_text)
+            re_result2 = re.search("([0-9]{2}/[0-9]{2}/[0-9]{2})", sub_text)
+
+            if re_result is not None and re_result2 is not None:
+                # print("Found", raw_doc_path)
+                pass
+            else:
+                print("Not found:", raw_doc_path)
 
 
 def preprocess_text():
     # TODO: Filtering, stemming (?), lemmat(?).. check with related work
     # remove_result_from_documents()
+
     pass
 
 # TODO: Remove "Documento assinado digitalmente conforme" text
