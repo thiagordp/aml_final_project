@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.inspection import permutation_importance
-from sklearn.metrics import classification_report
+from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
@@ -37,8 +37,8 @@ def modeling_w_text_only():
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
 
-    X_train_bow, bow_model = extract_bow(X_train, method="TF")
-    X_test_bow = extract_bow(X_test, fitted_bow=bow_model)
+    X_train_bow, bow_model = extract_bow(X_train, method="TF", ngram=(1, 2))
+    X_test_bow = extract_bow(X_test, fitted_bow=bow_model, ngram=(1, 2))
 
     base_modeling(X_train_bow, X_test_bow, y_train, y_test, bow_model.get_feature_names_out())
 
@@ -52,24 +52,28 @@ def modeling_w_attributes():
 def base_modeling(x_train, x_test, y_train, y_test, features):
     models = {
         "SVM": SVC(),
-        "Decision Tree": DecisionTreeClassifier(max_depth=10, ccp_alpha=),
+        "Decision Tree": DecisionTreeClassifier(max_depth=10),
         "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32)),
         "Naive Bayes": MultinomialNB(),
         "Random Forest": RandomForestClassifier(max_depth=10, n_jobs=4, n_estimators=50)
     }
 
     for model_name in models.keys():
+        print("-"*50)
         print("Training %s classifier" % model_name)
         model = models[model_name]
         model.fit(x_train, y_train)
         y_pred = model.predict(x_test)
         if model_name in ["Decision Tree", "Random Forest"]:
-
+            print("Feature importances")
             for feat, imp in zip(features, model.feature_importances_):
                 if imp >= 0.01:
                     print(feat, round(imp, 3))
 
-        print(classification_report(y_test, y_pred))
+        acc = metrics.accuracy_score(y_test, y_pred)
+        f1 = metrics.f1_score(y_test, y_pred, average="macro")
+
+        print("Acc: %.2f \tF1: %.2f" % (acc, f1))
 
     # Train Decision tree
 
