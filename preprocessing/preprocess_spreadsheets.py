@@ -8,6 +8,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
 
 from util.constants import PATH_PLANILHA_ATTRIB_EXPERT, PATH_PLANILHA_PROC
 
@@ -160,7 +161,16 @@ def preprocess_spreadsheets_part_ii():
     one_hot_enconding_for_multiple_value_columns(df, 'assuntos', sep="|",append_col_name=True)
 
     # One Hot Encoding for Rapporteur
-    one_hot_enconding_for_multiple_value_columns(df, 'Relator', sep="|", append_col_name=True)
+    # Aqui é possivel usar o get_dummies porque há apenas um relator por documento
+    oh_relator = pd.get_dummies(df.Relator, prefix='Relator')
+    df.drop("Relator", axis=1, inplace=True)
+    df = df.join(oh_relator)
+
+    oh_cidade = pd.get_dummies(df.origem, prefix="origem")
+    df.drop("origem", axis=1, inplace=True)
+    df = df.join(oh_cidade)
+
+    # One Hot
 
     # feature_selection
 
