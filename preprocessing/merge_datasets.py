@@ -10,7 +10,8 @@ import time
 
 import pandas as pd
 
-from util.constants import PATH_PLANILHA_ATRIBUTOS, PATH_PLANILHA_CRIMES, PATH_PLANILHA_ATTRIB_EXPERT, PATH_RAW_DOCS, PATH_PLANILHA_RAW_TEXT, PATH_METADATA
+from util.constants import PATH_PLANILHA_ATRIBUTOS, PATH_PLANILHA_CRIMES, PATH_PLANILHA_ATTRIB_EXPERT, PATH_RAW_DOCS, \
+    PATH_PLANILHA_RAW_TEXT, PATH_METADATA, PATH_PLANILHA_PROC, PROC_DOCS_FOLDER, PATH_PROC_DOCS
 
 
 def unify_attrib_worksheets():
@@ -72,13 +73,13 @@ def unify_attrib_worksheets():
     return merged_df
 
 
-def merge_text_files_into_spreadsheet():
+def merge_text_files_into_spreadsheet(source_path):
     print("Merge raw docs into spreadsheet")
     final_data = []
 
     # Walk through the dirs and list the raw docs.
     aux_count = 0
-    for root, dirs, files in os.walk(PATH_RAW_DOCS, topdown=False):
+    for root, dirs, files in os.walk(source_path, topdown=False):
 
         for name in files:
             raw_doc_path = os.path.join(root, name)
@@ -110,5 +111,5 @@ def merge_text_files_into_spreadsheet():
 
 def merge_datasets():
     logging.info("Merging datasets")
-    merge_text_files_into_spreadsheet()
+    merge_text_files_into_spreadsheet(PATH_PROC_DOCS)
     unify_attrib_worksheets()

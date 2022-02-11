@@ -5,19 +5,23 @@ import datetime
 import json
 import logging
 import os
+import random
 import re
 
 import nltk
+import pandas as pd
 import tqdm
 from nltk.corpus import stopwords
 
 nltk.download('stopwords')
-from util.constants import PATH_RAW_DOCS
+from util.constants import PATH_RAW_DOCS, PATH_PLANILHA_RAW_TEXT, RAW_DOCS_FOLDER, PROC_DOCS_FOLDER, PATH_PROC_DOCS
 
 
-def remove_result_from_documents():
-    for root, dirs, files in os.walk(PATH_RAW_DOCS, topdown=False):
+def remove_result_from_documents(source_path, dest_path):
+    logging.info("Removing result from documents")
+    for root, dirs, files in os.walk(source_path, topdown=False):
         dict_split = {}
+        random.shuffle(files)
         for name in files:
             raw_doc_path = os.path.join(root, name)
             splits_path = raw_doc_path.split(os.sep)
@@ -41,23 +45,66 @@ def remove_result_from_documents():
                 if len_split > 1:
                     text_after_ata = "\n".join(text_split[1:])
                     _extract_judges(text_after_ata)
+                    # print(text_after_ata)
 
                 text_before_ata = text_split[0]
-                text_without_vote = _remove_vote(text_before_ata)
-
                 strings_to_split = ["     VOTO", ]
-                splits = text.split(strings_to_split[0])
+                splits = text_before_ata.split(strings_to_split[0])
                 # print(raw_doc_path, len(splits))
+                # print(splits[0])
 
-                # with open(raw_doc_path.replace(".txt", "_proc.txt"), "w+") as fp:
-                #     # fp.write(text_without_vote)
-                #     pass
+                report_splits = re.split('R[ ]*E[ ]*L[ ]*A[ ]*T[ ]*(O[ ]*|Ó[ ]*)R[ ]*I[ ]*O[ ]*', splits[0])
+                # print(report_splits)
 
-        print(root, dict(sorted(dict_split.items())))
+                source_docs_folder = source_path.split(os.sep)[-1]
+                dest_docs_folder = dest_path.split(os.sep)[-1]
+
+                output_path = raw_doc_path.replace(source_docs_folder, dest_docs_folder)
+                folders = os.sep.join(output_path.split(os.sep)[:-1])
+                if not os.path.exists(folders):
+                    os.makedirs(folders)
+
+                with open(output_path, "w+") as fp:
+                    fp.write(report_splits[-1])
 
 
-def _remove_vote(text):
-    return text
+def has_ignore_strings(line):
+    list_ignore = [
+        "documento assinado digitalmente conforme",  # Digital signature message
+        "documento pode ser acessado no endereço",  # Digital signature message
+        "          supremo tribunal federal",  # Doc header
+        "  inteiro teor do acórdão",  # Doc header
+        "  voto - "
+    ]
+
+    for ignore_str in list_ignore:
+        if line.lower().find(ignore_str) >= 0:
+            return True
+
+    return False
+
+
+def remove_useless_headers_and_strings(source_path, dest_path):
+    logging.info("Removing useless headers and strings from documents")
+    for root, dirs, files in os.walk(source_path, topdown=False):
+        dict_split = {}
+        random.shuffle(files)
+        for name in files:
+            raw_doc_path = os.path.join(root, name)
+            splits_path = raw_doc_path.split(os.sep)
+
+            if len(splits_path) == 4:
+                with open(raw_doc_path, "r", encoding="utf8") as fp:
+                    text_lines = fp.readlines()
+                new_text = ""
+
+                for line in text_lines:
+                    if not has_ignore_strings(line):
+                        new_text += line
+
+                dest_file_path = raw_doc_path.replace(source_path, dest_path)
+                with open(dest_file_path, "w+", encoding="utf8") as fp:
+                    fp.write(new_text)
 
 
 def _extract_judges(text):
@@ -79,14 +126,26 @@ def raw_text_preprocessing(text, remove_stopword=True, stops=None, stemming=Fals
     return joined_words
 
 
-def raw_corpus_preprocessing(corpus, remove_stopword=True, stemming=False, lemmatization=False):
-    stops = set(stopwords.words('portuguese'))
-    logging.info("Pre-processing corpus")
-    new_corpus = []
-    for text in tqdm.tqdm(corpus):
-        new_corpus.append(raw_text_preprocessing(text, remove_stopword=remove_stopword, stops=stops, stemming=stemming,
-                                                 lemmatization=lemmatization))
-    return new_corpus
+def raw_corpus_preprocessing(source_path=None,dest_path=None, remove_stopword=True, stemming=False, lemmatization=False):
+
+    logging.info("Text Pre-processing corpus")
+
+    for root, dirs, files in os.walk(source_path, topdown=False):
+        dict_split = {}
+        random.shuffle(files)
+        for name in files:
+            raw_doc_path = os.path.join(root, name)
+            splits_path = raw_doc_path.split(os.sep)
+
+            if len(splits_path) == 4:
+                with open(raw_doc_path, "r", encoding="utf8") as fp:
+                    text = fp.read()
+
+                new_text = raw_text_preprocessing(text, remove_stopword=True)
+
+                dest_file_path = raw_doc_path.replace(source_path, dest_path)
+                with open(dest_file_path, "w+", encoding="utf8") as fp:
+                    fp.write(new_text)
 
 
 def check_dates():
@@ -120,9 +179,10 @@ def check_dates():
 
 def preprocess_text():
     # TODO: Filtering, stemming (?), lemmat(?).. check with related work
-    # remove_result_from_documents()
+    remove_result_from_documents(PATH_RAW_DOCS, PATH_PROC_DOCS)
+    remove_useless_headers_and_strings(PATH_PROC_DOCS, PATH_PROC_DOCS)
 
-    pass
+    raw_corpus_preprocessing(PATH_PROC_DOCS, PATH_PROC_DOCS)
 
 # TODO: Remove "Documento assinado digitalmente conforme" text
 # TODO

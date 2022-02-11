@@ -40,7 +40,7 @@ def run_pipeline():
     # Second EDA
     eda_part_ii()  # TODO: finish EDA
     # TODO: modeling
-    modeling_w_text_only()
+    # modeling_w_text_only()
 
 if __name__ == '__main__':
     setup_logging()
