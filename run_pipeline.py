@@ -33,9 +33,9 @@ def run_pipeline():
     preprocess_text()
     merge_datasets()
     preprocess_spreadsheets_part_i()
-
-    logging.info("-" * 50)
-    logging.info("    DATA UNDERSTANDING PART II    ")
+    #
+    # logging.info("-" * 50)
+    # logging.info("    DATA UNDERSTANDING PART II    ")
 
     # Second EDA
     eda_part_ii()  # TODO: finish EDA
@@ -45,4 +45,4 @@ def run_pipeline():
 if __name__ == '__main__':
     setup_logging()
     run_pipeline()
-    check_dates()
+    #check_dates()

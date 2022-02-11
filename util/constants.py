@@ -16,6 +16,8 @@ PROC_DOCS_FOLDER = "proc_docs"
 PATH_RAW_DOCS = os.path.join("dataset", RAW_DOCS_FOLDER)
 PATH_PROC_DOCS = os.path.join("dataset", PROC_DOCS_FOLDER)
 
+# Classe Positiva é solta
+
 for folder in [PATH_RAW_DOCS, PATH_OUTPUT_EDA_I, PATH_OUTPUT_EDA_II, PATH_PROC_DOCS]:
     if not os.path.exists(folder):
         os.makedirs(folder)

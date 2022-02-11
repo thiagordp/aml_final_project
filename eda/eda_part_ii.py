@@ -11,10 +11,12 @@ import pandas as pd
 import tqdm
 from matplotlib import pyplot as plt
 import seaborn as sns
+from scipy.stats import chi2_contingency
 from wordcloud import WordCloud
 
 from preprocessing.preprocess_raw_documents import raw_text_preprocessing, preprocess_text
-from util.constants import PATH_PLANILHA_PROC, PATH_OUTPUT_EDA_II, PATH_RAW_DOCS, PATH_OUTPUT_EDA_I, DICT_TRANSLATE_LABEL, DICT_TRANSLATE_CRIME
+from util.constants import PATH_PLANILHA_PROC, PATH_OUTPUT_EDA_II, PATH_RAW_DOCS, PATH_OUTPUT_EDA_I, \
+    DICT_TRANSLATE_LABEL, DICT_TRANSLATE_CRIME
 
 
 def most_frequent_crimes():
@@ -289,7 +291,8 @@ def bag_of_words(preprocess_text=True):
                     for line in fp:
                         lower_text = line.lower()
                         # TODO: place inside a 'remove line' code
-                        if not lower_text.startswith("documento digital") and not lower_text.startswith("documento pode ser acessado no endereço") and \
+                        if not lower_text.startswith("documento digital") and not lower_text.startswith(
+                                "documento pode ser acessado no endereço") and \
                                 len(lower_text.split()) > 3:
                             content.append(lower_text)
 
@@ -326,7 +329,8 @@ def bag_of_words(preprocess_text=True):
 def _generate_word_cloud(text, out_path):
     print("Generating word cloud for ", out_path)
     wordcloud = WordCloud(
-        background_color='white', collocations=False, normalize_plurals=False, width=1600, height=900).generate(str(text))
+        background_color='white', collocations=False, normalize_plurals=False, width=1600, height=900).generate(
+        str(text))
     fig = plt.figure(
         figsize=(16, 9))
     plt.imshow(wordcloud, interpolation='bilinear')
@@ -340,18 +344,37 @@ def _generate_word_cloud(text, out_path):
 
 
 def correlation_qty_crimes_result():
+    df = pd.read_csv(PATH_PLANILHA_PROC.replace("@ext", "csv"))
+
+    print("-" * 50)
+    print("Correlation between crime quantity and result")
+
+    df["Resultado"] = (df["Resultado Doc"] == "Solto").astype(int)
+    CrosstabResult = pd.crosstab(index=df['Quant'], columns=df['Resultado Doc'])
+
+    chi2, p, dof, ex = chi2_contingency(CrosstabResult)
+    print(chi2, p, dof, ex)
 
 
+def correlation_crime_result():
+    pass
 
+
+def correlation_rapporteur_result():
+    pass
+
+
+def correlation_subject_result():
     pass
 
 
 def eda_part_ii():
-    most_frequent_crimes()
-    most_frequent_crimes_by_year()
-    most_frequent_rappourter()
-    most_frequent_rappourter_by_label()
-    most_frequent_subjects()
-    crimes_per_document_per_label()
+    # most_frequent_crimes()
+    # most_frequent_crimes_by_year()
+    # most_frequent_rappourter()
+    # most_frequent_rappourter_by_label()
+    # most_frequent_subjects()
+    # crimes_per_document_per_label()
 
-    bag_of_words(preprocess_text=True)
+    # bag_of_words(preprocess_text=True)
+    correlation_qty_crimes_result()

@@ -6,6 +6,7 @@
 import datetime
 import logging
 
+import numpy as np
 import pandas as pd
 
 from util.constants import PATH_PLANILHA_ATTRIB_EXPERT, PATH_PLANILHA_PROC
@@ -31,17 +32,23 @@ def remove_unnecessary_features(df: pd.DataFrame):
 
     # Drop columns
     useless_columns_to_drop = [
-        "Número do HC", "file_name", "num_registro", "pacte_s", "impte_s",
-        "proc_a_s_es", "coator_a_s_es", "adv_a_s", "intdo_a_s", "assist_s", "am_curiae",
+        "Número do HC", "file_name", "num_registro", "pacte_s", "impte_s", "tipo_processo", "nivel_sigilo",
+        "proc_a_s_es", "coator_a_s_es", "adv_a_s", "intdo_a_s", "assist_s", "am_curiae", "nome_classe",
         "Caminho Doc", "Unnamed: 23", "numero_unico", "relator_ultimo_incidente", "num_na_classe",
-        "Conteúdo"  # This one is not required in the spreadsheet, but we will use it later from the txt's.
     ]
     duplicates_columns_to_drop = [
-        "Resultado_x", "Crime_x", "Relator_y", "Resultado_y", "Crime_y", "relator"
+        "Resultado_x",
+        "Resultado_y",
+        "Relator_y",
+        "Crime_x",
+        "Crime_y",
+        "relator"
     ]
 
     df.drop(useless_columns_to_drop, axis=1, inplace=True)
     df.drop(duplicates_columns_to_drop, axis=1, inplace=True)
+
+    df.dropna(subset=["Resultado Doc"], inplace=True)
 
     return df
 
@@ -76,10 +83,15 @@ def process_col_values(df: pd.DataFrame):
     df["Enquadramento"] = df["Enquadramento"].replace(["NAN"], "DESCONHECIDO")
 
     df['data_documento'] = pd.to_datetime(df['data_documento'])
+    df['data_protocolo'] = pd.to_datetime(df['data_protocolo'])
 
+    df["diff_datas"] = df["data_documento"] - df["data_protocolo"]
+
+    # TODO: Extract document dates using the new code, and correct the months and
     df['ano_documento'] = df['data_documento'].dt.year
     df['assuntos'].fillna("Desconhecido", inplace=True)
     df['Quant'].fillna(1, inplace=True)
+    df["Resultado Doc Num"] = np.where(df['Resultado Doc'] == "Solto", 1, 0)
 
     nulls = df.isnull().sum()
     print("Null columns\n", nulls[nulls > 0])
@@ -101,3 +113,59 @@ def preprocess_spreadsheets_part_i():
     logging.info("Saving the first preprocessing step")
     df.to_csv(PATH_PLANILHA_PROC.replace("@ext", "csv"), index=False)
     df.to_excel(PATH_PLANILHA_PROC.replace("@ext", "xlsx"), index=False)
+
+
+def one_hot_enconding_for_multiple_value_columns(data_df: pd.DataFrame, col_name: str, sep=";", append_col_name=False):
+    """
+    Custom One Hot encoding to allow cells with multiple values.
+    :param data_df: DataFrame
+    :param col_name: Column to onehotenconde
+    :param sep: separator char of Cell value
+    :return:  None
+    """
+    col_data = data_df[col_name]
+
+    col_unique_values = list(set(col_data))
+
+    values = []
+
+    # There are rows with more than one value (separated by ";").
+    # We need to split those lines to get the actual unique values.
+    for col_value in col_unique_values:
+        tokens = [token.strip() for token in col_value.split(sep)]
+        values.extend(tokens)
+
+    actual_unique_values = list(set(values))
+    for new_col in actual_unique_values:
+        if append_col_name:
+            new_col = col_name + " " + new_col
+        data_df[new_col] = 0
+
+    for index, row in data_df.iterrows():
+        row_data = str(row[col_name])
+        tokens = [token.strip() for token in row_data.split(sep)]
+
+        for token in tokens:
+            if append_col_name:
+                token = col_name + " " + token
+            data_df.at[index, token] = 1
+
+
+def preprocess_spreadsheets_part_ii():
+    df = pd.read_csv(PATH_PLANILHA_PROC.replace("@ext", "csv"))
+
+    # One Hot Encoding for Crime
+    one_hot_enconding_for_multiple_value_columns(df, 'Enquadramento')
+    # One Hot enconding for subject
+    one_hot_enconding_for_multiple_value_columns(df, 'assuntos', sep="|",append_col_name=True)
+
+    # One Hot Encoding for Rapporteur
+    one_hot_enconding_for_multiple_value_columns(df, 'Relator', sep="|", append_col_name=True)
+
+    # feature_selection
+
+    logging.info("Saving the second preprocessing step")
+    df.to_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"), index=False)
+    df.to_excel(PATH_PLANILHA_PROC.replace(".@ext", "_2.xlsx"), index=False)
+    corr= df.corr()
+    corr.to_excel("corr.xlsx")
