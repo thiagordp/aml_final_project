@@ -133,7 +133,7 @@ def one_hot_enconding_for_multiple_value_columns(data_df: pd.DataFrame, col_name
     # There are rows with more than one value (separated by ";").
     # We need to split those lines to get the actual unique values.
     for col_value in col_unique_values:
-        tokens = [token.strip() for token in col_value.split(sep)]
+        tokens = [token.strip() for token in col_value.replace("\n", sep).split(sep)]
         values.extend(tokens)
 
     actual_unique_values = list(set(values))
@@ -144,12 +144,14 @@ def one_hot_enconding_for_multiple_value_columns(data_df: pd.DataFrame, col_name
 
     for index, row in data_df.iterrows():
         row_data = str(row[col_name])
-        tokens = [token.strip() for token in row_data.split(sep)]
+        tokens = [token.strip() for token in row_data.replace("\n", sep).split(sep)]
 
         for token in tokens:
             if append_col_name:
                 token = col_name + " " + token
             data_df.at[index, token] = 1
+
+    data_df.drop(columns=[col_name], inplace=True)
 
 
 def preprocess_spreadsheets_part_ii():
@@ -158,7 +160,7 @@ def preprocess_spreadsheets_part_ii():
     # One Hot Encoding for Crime
     one_hot_enconding_for_multiple_value_columns(df, 'Enquadramento')
     # One Hot enconding for subject
-    one_hot_enconding_for_multiple_value_columns(df, 'assuntos', sep="|",append_col_name=True)
+    one_hot_enconding_for_multiple_value_columns(df, 'assuntos', sep="|", append_col_name=True)
 
     # One Hot Encoding for Rapporteur
     # Aqui é possivel usar o get_dummies porque há apenas um relator por documento
@@ -177,5 +179,9 @@ def preprocess_spreadsheets_part_ii():
     logging.info("Saving the second preprocessing step")
     df.to_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"), index=False)
     df.to_excel(PATH_PLANILHA_PROC.replace(".@ext", "_2.xlsx"), index=False)
-    corr= df.corr()
+    corr = df.corr()
     corr.to_excel("corr.xlsx")
+
+    # TODO: Missing values imputation
+    # TODO: Feature Selection using
+    # TODO: remove low variance features

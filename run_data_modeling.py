@@ -20,13 +20,14 @@ from xgboost import XGBClassifier
 
 from feature_extraction.text_feature_extraction import extract_bow
 from preprocessing.preprocess_raw_documents import raw_corpus_preprocessing
-from util.constants import PATH_PLANILHA_RAW_TEXT
+from util.constants import PATH_PLANILHA_RAW_TEXT, PATH_PLANILHA_PROC
 import nltk
 
 from util.setup_logging import setup_logging
 
 nltk.download('punkt')
 warnings.filterwarnings("ignore")
+
 
 def modeling_w_text_only():
     # Load dataset
@@ -36,9 +37,9 @@ def modeling_w_text_only():
     X = np.array(dataset_df["Conteúdo"])
     y = np.array(dataset_df["Resultado Doc"])
 
-    dict_results={}
+    dict_results = {}
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
-    skf = StratifiedKFold(n_splits=5,  shuffle=True,random_state=142)
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
     print("Training/Testing using 5-fold cross-validation")
     for train_index, test_index in skf.split(X, y):
         print("=", end="")
@@ -82,12 +83,68 @@ def modeling_w_text_only():
     # Plot F1
 
 
-
-
-
 def modeling_w_attributes():
     # load dataset
+    logging.info("Modeling using only attributes")
+    logging.info("Loading and preprocessing")
+    dataset_df = pd.read_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"))
 
+    dataset_df.drop(
+        columns=["Número do doc", "Resultado Doc Num", "data_documento", "ano_documento", "data_protocolo",
+                 "diff_datas", "orgao_origem", "Conteúdo"],
+        inplace=True)
+    features_df = dataset_df.drop(columns=["Resultado Doc"])
+
+    X = np.array(features_df)
+    y = np.array(dataset_df["Resultado Doc"])
+    print("Nan:", list(features_df.isnull().sum()))
+
+    feature_names = list(features_df.columns)
+    # print("Features: ", feature_names)
+    dict_results = {}
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
+    print("Training/Testing using 5-fold cross-validation")
+    for train_index, test_index in skf.split(X, y):
+        print("=", end="")
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+        scaler = StandardScaler(with_mean=False)
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
+
+        base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results)
+    print("")
+
+    data = []
+    for model_name in dict_results.keys():
+        accs = dict_results[model_name]["acc"]
+        mean_acc = np.median(accs)
+        std_dev_acc = np.std(accs)
+        f1s = dict_results[model_name]["f1"]
+        mean_f1 = np.median(f1s)
+        std_dev_f1 = np.std(f1s)
+
+        data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
+
+    df = pd.DataFrame(data, columns=["Model", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+
+    # Plot Ac
+    x, y, e = df["Model"], df["Mean Acc"], df["Std Acc"]
+    plt.title("Accuracy for the models using only report text")
+    plt.errorbar(x, y, e, linestyle='None', marker='^')
+    plt.show()
+
+    plt.title("F1-Score for the models using only report text")
+    x, y, e = df["Model"], df["Mean F1"], df["Std F1"]
+    plt.errorbar(x, y, e, linestyle='None', marker='^')
+    plt.show()
+
+    # Plot F1
+
+
+def modeling_w_attributes_and_text():
     pass
 
 
@@ -100,26 +157,26 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None)
         "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32)),
         "Naive Bayes": MultinomialNB(),
         "Adaboost": AdaBoostClassifier(n_estimators=100),
-        "XGBoost": XGBClassifier(n_estimators=100)
+        "Decision Tree": DecisionTreeClassifier(max_depth=20),
+        "XGBoost": XGBClassifier(n_estimators=100),
+        "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=20)
     }
 
     for model_name in models.keys():
         if model_name not in dict_results.keys():
             dict_results[model_name] = {"acc": [], "f1": []}
 
-        #logging.info("-"*50)
-        #logging.info("Training %s classifier" % model_name)
+        # logging.info("-"*50)
+        # logging.info("Training %s classifier" % model_name)
         model = models[model_name]
         model.fit(x_train, y_train)
         y_pred = model.predict(x_test)
-        if model_name in ["Decision Tree", "Random Forest", "GB"]:
-            pass
-            """
-            logging.info("Feature importances (> 0.2)")
+        if model_name in ["XGBoost"]:
+            logging.info("=" * 50)
+            logging.info("%s: Feature importances (> 0.2)" % model_name)
             for feat, imp in zip(features, model.feature_importances_):
-                if imp >= 0.02:
-                    logging.info("%s: %.3f"% (feat, imp))
-            """
+                if imp >= 0.01:
+                    logging.info("%s: %.3f" % (feat, imp))
 
         acc = metrics.accuracy_score(y_test, y_pred)
         f1 = metrics.f1_score(y_test, y_pred, pos_label="Solto")
@@ -131,6 +188,8 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None)
 
     return dict_results
 
+
 if __name__ == "__main__":
     setup_logging()
-    modeling_w_text_only()
+    # modeling_w_text_only()
+    modeling_w_attributes()
