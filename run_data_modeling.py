@@ -153,11 +153,12 @@ def modeling_w_attributes_and_text():
     dataset_df = pd.read_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"))
 
     dataset_df.drop(
-        columns=["Número do doc", "Resultado Doc Num", "data_documento", "ano_documento", "data_protocolo",
-                 "diff_datas", "orgao_origem"],
+        columns=["Número do doc", "Resultado Doc Num", "data_documento","data_protocolo",
+                 "data_doc_extr", "orgao_origem"],
         inplace=True)
     features_df = dataset_df.drop(columns=["Resultado Doc"])
     features_names = list(features_df.drop(columns=["Conteúdo"]).columns)
+
 
     X = np.array(features_df)
     y = np.array(dataset_df["Resultado Doc"])
@@ -196,6 +197,7 @@ def modeling_w_attributes_and_text():
         # X_test = scaler.transform(X_test)
 
         base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results, features_to_select=1000)
+
     print("")
 
     data = []
@@ -238,9 +240,9 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None,
         "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32)),
         "Naive Bayes": MultinomialNB(),
         "Adaboost": AdaBoostClassifier(n_estimators=100),
-        "Decision Tree": DecisionTreeClassifier(max_depth=20),
-        "XGBoost": XGBClassifier(n_estimators=100),
-        "Random Forest": RandomForestClassifier(n_estimators=100, max_depth=20)
+        #"Decision Tree": DecisionTreeClassifier(max_depth=20),
+        #"XGBoost": XGBClassifier(n_estimators=100),
+        #"Random Forest": RandomForestClassifier(n_estimators=100, max_depth=20)
     }
 
     # rfecv = RFECV(
@@ -253,7 +255,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None,
     # )
 
     clf = AdaBoostClassifier(n_estimators=20)
-    selectFS = SelectFromModel(clf, prefit=False, max_features=200)
+    selectFS = SelectFromModel(clf, prefit=False, max_features=500)
     # Analyze the performance according to N of features
     logging.info("Running RFE selection")
     x_train = selectFS.fit_transform(x_train, y_train)

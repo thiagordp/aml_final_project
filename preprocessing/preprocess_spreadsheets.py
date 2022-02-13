@@ -194,7 +194,8 @@ def preprocess_spreadsheets_part_ii():
     arr = [val for val in arr if np.isreal(val) and val > 0]
 
     mean_for_diff_data = np.mean(arr)
-    df.loc[(df['diff_datas'] < 0) | (df["diff_datas"] is None), 'diff_datas'] = mean_for_diff_data
+    df.loc[(df['diff_datas'] < 0), 'diff_datas'] = mean_for_diff_data
+    df['diff_datas'] = df['diff_datas'].fillna(mean_for_diff_data)
     logging.info("Saving the second preprocessing step")
     df.to_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"), index=False)
     df.to_excel(PATH_PLANILHA_PROC.replace(".@ext", "_2.xlsx"), index=False)
