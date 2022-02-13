@@ -126,8 +126,8 @@ def raw_text_preprocessing(text, remove_stopword=True, stops=None, stemming=Fals
     return joined_words
 
 
-def raw_corpus_preprocessing(source_path=None,dest_path=None, remove_stopword=True, stemming=False, lemmatization=False):
-
+def raw_corpus_preprocessing(source_path=None, dest_path=None, remove_stopword=True, stemming=False,
+                             lemmatization=False):
     logging.info("Text Pre-processing corpus")
 
     for root, dirs, files in os.walk(source_path, topdown=False):
@@ -149,11 +149,8 @@ def raw_corpus_preprocessing(source_path=None,dest_path=None, remove_stopword=Tr
 
 
 def check_dates():
-    oldest_file = ""
-    oldest_date = datetime.datetime(day=1, month=1, year=1900)
-    newest_file = ""
-    newest_date = datetime.datetime(day=1, month=1, year=2100)
 
+    dict_file_date = dict()
     for root, dirs, files in os.walk(PATH_RAW_DOCS, topdown=False):
         dict_split = {}
         for name in files:
@@ -164,17 +161,34 @@ def check_dates():
                 os.remove(raw_doc_path)
                 continue
 
+            if not raw_doc_path.endswith(".txt"):
+                continue
+
             text = open(raw_doc_path, "r").read()
 
             sub_text = " ".join(text.split()[:50])  # Date should be at the beginning of the file.
             re_result = re.search("([0-9]{2}/[0-9]{2}/[0-9]{4})", sub_text)
             re_result2 = re.search("([0-9]{2}/[0-9]{2}/[0-9]{2})", sub_text)
 
-            if re_result is not None and re_result2 is not None:
+            if re_result is not None or re_result2 is not None:
                 # print("Found", raw_doc_path)
-                pass
+                num_doc = name.replace(".txt", "").upper()
+
+                try:
+                    datetime_obj = datetime.datetime.strptime(re_result.group(1), "%d/%m/%Y")
+                    dict_file_date[num_doc] = [datetime_obj, re_result.group(1)]
+                except:
+                    datetime_obj = datetime.datetime.strptime(re_result2.group(1), "%d/%m/%y")
+                    if datetime_obj.year > 2020:
+                        datetime_obj = datetime_obj.replace(year=datetime_obj.year - 100)
+                    dict_file_date[num_doc] = [datetime_obj, re_result2.group(1)]
+
             else:
                 print("Not found:", raw_doc_path)
+                dict_file_date[name.replace(".txt", "").upper()] = None
+
+    print(dict_file_date)
+    return dict_file_date
 
 
 def preprocess_text():

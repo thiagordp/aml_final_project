@@ -10,9 +10,9 @@ from util.setup_logging import setup_logging
 
 def run_preprocessing():
     # Preprocessing
-    preprocess_text()
-    merge_datasets()
-    preprocess_spreadsheets_part_i()
+    # preprocess_text()
+    # merge_datasets()
+    # preprocess_spreadsheets_part_i()
     preprocess_spreadsheets_part_ii()
 
 

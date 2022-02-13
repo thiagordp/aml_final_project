@@ -44,7 +44,7 @@ def unify_attrib_worksheets():
     merged_df["Número do doc"] = merged_df["Número do doc"].apply(lambda x: x.upper())
 
     # Get df from worksheet of attrib extracted via scraping
-    autoextract_attrib = pd.read_csv(PATH_METADATA, sep=";")
+    autoextract_attrib = pd.read_csv(PATH_METADATA, sep=";",dayfirst=True)
     autoextract_attrib["Número do doc"] = autoextract_attrib["Número do doc"].apply(lambda x: x.upper())
     autoextract_attrib["data_documento"] = autoextract_attrib["data_documento"].apply(lambda x: str(x))
 

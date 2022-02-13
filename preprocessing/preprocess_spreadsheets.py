@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
+from preprocessing.preprocess_raw_documents import check_dates
 from util.constants import PATH_PLANILHA_ATTRIB_EXPERT, PATH_PLANILHA_PROC
 
 
@@ -83,13 +84,10 @@ def process_col_values(df: pd.DataFrame):
     df["Enquadramento"] = df["Enquadramento"].apply(lambda x: str(x).upper())
     df["Enquadramento"] = df["Enquadramento"].replace(["NAN"], "DESCONHECIDO")
 
-    df['data_documento'] = pd.to_datetime(df['data_documento'])
-    df['data_protocolo'] = pd.to_datetime(df['data_protocolo'])
+    # df['data_documento'] = pd.to_datetime(df['data_documento'], format="%d/%m/%y")
+    df['data_protocolo'] = pd.to_datetime(df['data_protocolo'], format="%d/%m/%Y")
 
-    df["diff_datas"] = df["data_documento"] - df["data_protocolo"]
-
-    # TODO: Extract document dates using the new code, and correct the months and
-    df['ano_documento'] = df['data_documento'].dt.year
+    #df['ano_documento'] = df['data_documento'].dt.year
     df['assuntos'].fillna("Desconhecido", inplace=True)
     df['Quant'].fillna(1, inplace=True)
     df["Resultado Doc Num"] = np.where(df['Resultado Doc'] == "Solto", 1, 0)
@@ -154,6 +152,18 @@ def one_hot_enconding_for_multiple_value_columns(data_df: pd.DataFrame, col_name
     data_df.drop(columns=[col_name], inplace=True)
 
 
+def set_extracted_dates(df: pd.DataFrame, col_name: str):
+    dict_dates = check_dates()
+
+    for index, row in df.iterrows():
+        numero_doc = str(df.iloc[index]["Número do doc"]).upper()
+        date_obj = dict_dates[numero_doc]
+
+        df.at[index, col_name] = date_obj[0]
+
+    return df
+
+
 def preprocess_spreadsheets_part_ii():
     df = pd.read_csv(PATH_PLANILHA_PROC.replace("@ext", "csv"))
 
@@ -172,10 +182,19 @@ def preprocess_spreadsheets_part_ii():
     df.drop("origem", axis=1, inplace=True)
     df = df.join(oh_cidade)
 
-    # One Hot
+    df = set_extracted_dates(df, "data_doc_extr")
+    df['data_doc_extr'] = pd.to_datetime(df['data_doc_extr'], format="%d/%m/%Y")
+    print(df.iloc[2]['data_doc_extr'].strftime("%d/%m/%Y"))
+    df['data_protocolo'] = pd.to_datetime(df['data_protocolo'], format="%Y/%m/%d")
+    print(df.iloc[2]['data_protocolo'].strftime("%d/%m/%Y"))
+    df["diff_datas"] = df["data_doc_extr"] - df["data_protocolo"]
+    df['diff_datas'] = pd.to_numeric(df['diff_datas'].dt.days, downcast='integer')
 
-    # feature_selection
+    arr = df["diff_datas"].values
+    arr = [val for val in arr if np.isreal(val) and val > 0]
 
+    mean_for_diff_data = np.mean(arr)
+    df.loc[(df['diff_datas'] < 0) | (df["diff_datas"] is None), 'diff_datas'] = mean_for_diff_data
     logging.info("Saving the second preprocessing step")
     df.to_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"), index=False)
     df.to_excel(PATH_PLANILHA_PROC.replace(".@ext", "_2.xlsx"), index=False)
@@ -183,5 +202,3 @@ def preprocess_spreadsheets_part_ii():
     corr.to_excel("corr.xlsx")
 
     # TODO: Missing values imputation
-    # TODO: Feature Selection using
-    # TODO: remove low variance features
