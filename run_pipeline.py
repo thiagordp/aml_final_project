@@ -45,4 +45,3 @@ def run_pipeline():
 if __name__ == '__main__':
     setup_logging()
     run_pipeline()
-    #check_dates()

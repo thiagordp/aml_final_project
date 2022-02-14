@@ -2,11 +2,14 @@
 
 """
 import logging
+import os.path
 import warnings
 
+import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from matplotlib.patches import Patch
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, BaggingClassifier
 from sklearn.feature_selection import RFECV, SelectKBest, chi2, SelectFromModel
 from sklearn.inspection import permutation_importance
@@ -22,7 +25,7 @@ from xgboost import XGBClassifier
 
 from feature_extraction.text_feature_extraction import extract_bow
 from preprocessing.preprocess_raw_documents import raw_corpus_preprocessing
-from util.constants import PATH_PLANILHA_RAW_TEXT, PATH_PLANILHA_PROC
+from util.constants import PATH_PLANILHA_RAW_TEXT, PATH_PLANILHA_PROC, PATH_RESULTS
 import nltk
 
 from util.setup_logging import setup_logging
@@ -153,12 +156,11 @@ def modeling_w_attributes_and_text():
     dataset_df = pd.read_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"))
 
     dataset_df.drop(
-        columns=["Número do doc", "Resultado Doc Num", "data_documento","data_protocolo",
+        columns=["Número do doc", "Resultado Doc Num", "data_documento", "data_protocolo",
                  "data_doc_extr", "orgao_origem"],
         inplace=True)
     features_df = dataset_df.drop(columns=["Resultado Doc"])
     features_names = list(features_df.drop(columns=["Conteúdo"]).columns)
-
 
     X = np.array(features_df)
     y = np.array(dataset_df["Resultado Doc"])
@@ -169,10 +171,15 @@ def modeling_w_attributes_and_text():
     dict_results = {}
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
+    cross_val_splits = 5
+    skf = StratifiedKFold(n_splits=cross_val_splits, shuffle=True, random_state=142)
     print("Training/Testing using 5-fold cross-validation")
+    count = 0
     for train_index, test_index in skf.split(X, y):
-        print("=", end="")
+        logging.info("=" * 50)
+
+        count += 1
+        logging.info("Running cross-val - %d of %d" % (count, cross_val_splits))
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
 
@@ -184,14 +191,10 @@ def modeling_w_attributes_and_text():
         X_test = np.delete(X_test, 1, 1)  # Remove second column (Conteúdo)
 
         features_names.extend(bow_features)
-        #print("Features: ", features_names)
-        print(X_train.shape)
 
-        print(x_train_bow.shape)
         X_train = np.concatenate((X_train, x_train_bow), axis=1)
         X_test = np.concatenate((X_test, x_test_bow), axis=1)
 
-        print(X_train.shape)
         scaler = StandardScaler(with_mean=False)
         # X_train = scaler.fit_transform(X_train)
         # X_test = scaler.transform(X_test)
@@ -203,32 +206,144 @@ def modeling_w_attributes_and_text():
     data = []
     for model_name in dict_results.keys():
         accs = dict_results[model_name]["acc"]
-        mean_acc = np.median(accs)
+        mean_acc = np.mean(accs)
         std_dev_acc = np.std(accs)
         f1s = dict_results[model_name]["f1"]
-        mean_f1 = np.median(f1s)
+        mean_f1 = np.mean(f1s)
         std_dev_f1 = np.std(f1s)
 
         data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
     df = pd.DataFrame(data, columns=["Model", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df.sort_values(by=["Model"], ascending=True, inplace=True)
 
-    # Plot Ac
-    x, y, e = df["Model"], df["Mean Acc"], df["Std Acc"]
-    plt.title("Accuracy for the models using only report text")
-    plt.errorbar(x, y, e, linestyle='None', marker='s')
-    plt.ylim([0, 1])
-    plt.yticks(np.arange(0, 1, step=0.1))
-    plt.grid("--", axis="y", which="major")
-    plt.show()
+    df.to_csv(os.path.join(PATH_RESULTS, "results_attr_text.csv"), index=False)
 
-    plt.title("F1-Score for the models using only report text")
-    x, y, e = df["Model"], df["Mean F1"], df["Std F1"]
-    plt.errorbar(x, y, e, linestyle='None', marker='s')
-    plt.ylim([0, 1])
-    plt.yticks(np.arange(0, 1, step=0.1))
-    plt.grid("--", axis="y", which="major")
-    plt.show()
+    output_path = os.path.join(PATH_RESULTS, "results_attr_text.@ext")
+    plot_acc_f1(df, output_path)
+
+
+def plot_acc_f1(df, out_path):
+    """
+    Código para plotar acc and F1 em um mesmo gráfico
+    Obs: usado num artigo já publicado.
+    :param out_path:
+    :param df:
+    :return:
+    """
+    matplotlib.rcParams['font.family'] = "FreeSerif"
+
+    tech_names = techs = list(df["Model"])
+    accs = list(df["Mean Acc"])
+    accs_std = list(df["Std Acc"])
+    f1_scores = list(df["Mean F1"])
+    f1_scores_std = list(df["Std F1"])
+
+    #########################################################
+    # Plot R2 and RMSE in the same plot
+
+    # plt.figure(figsize=(15, 8))
+    #plt.grid()
+    fig, ax1 = plt.subplots()
+
+    fig.set_figheight(4)
+    fig.set_figwidth(9)
+
+    color = 'tab:red'
+    # ax1.set_xlabel('Technique')
+    ax1.set_ylabel('Accuracy', color="black", fontsize=10)
+    ax1.set_axisbelow(True)
+    ax1.grid(axis="y", linestyle=":", alpha=0.8)
+
+    ax1.set_ylim(0, 1)
+
+    # ax1.plot(t, r2, color=color)
+    x = np.arange(len(techs))
+    it_techs = 0
+    bar_width = 0.45
+
+    for i_tech in range(len(techs)):
+        data = accs[i_tech]
+        yerr = accs_std[i_tech]
+
+        if it_techs == 0:
+            ax1.bar(x[it_techs] - (bar_width / 2), data, yerr=yerr, color=(217 / 255, 198 / 255, 176 / 255), width=bar_width,
+                    label="Accuracy")
+        else:
+            ax1.bar(x[it_techs] - (bar_width / 2), data,yerr=yerr, color=(217 / 255, 198 / 255, 176 / 255), width=bar_width)
+
+        label = "{:.1%}".format(data)
+
+        plt.annotate(label,  # this is the text
+                     (x[it_techs] - (bar_width / 2), data),  # this is the point to label
+                     textcoords="offset points",  # how to position the text
+                     xytext=(0, 2),  # distance from text to points (x,y)
+                     color="black",
+                     fontsize=10,
+                     rotation=0,
+                     ha='center')  # horizontal alignment can be left, right or center
+
+        it_techs += 1
+    it_techs = 0
+
+    labels_techs = [""]
+
+    for tech in techs:
+        labels_techs.append("")
+        labels_techs.append(tech)
+
+    ax1.set_xticklabels(labels_techs, rotation=20, fontsize=12)
+    ylabels = ["{:.1%}".format(label) for label in ax1.get_yticks()]
+    ax1.set_yticklabels(ylabels, fontsize=12)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    ax2.set_ylim(0, 1)
+
+    for i_tech in range(len(techs)):
+        data = f1_scores[i_tech]
+        yerr = f1_scores_std[i_tech]
+        if it_techs == 0:
+            ax2.bar(x[it_techs] + (bar_width / 2), data, yerr=yerr, color=(120 / 255, 159 / 255, 138 / 255),
+                    width=bar_width,
+                    label="F1-Score")
+        else:
+            ax2.bar(x[it_techs] + (bar_width / 2), data, yerr=yerr, color=(120 / 255, 159 / 255, 138 / 255),
+                    width=bar_width)
+
+        label = format(data, ',.2f')
+
+        plt.annotate(label,  # this is the text
+                     (x[it_techs] + (bar_width / 2), data),  # this is the point to label
+                     textcoords="offset points",  # how to position the text
+                     xytext=(0, 2),  # distance from text to points (x,y)
+                     color="black",
+                     fontsize=10,
+                     rotation=0,
+                     ha='center')  # horizontal alignment can be left, right or center
+
+        it_techs += 1
+
+    ax2.tick_params(axis='y', labelcolor="black", labelsize=12)
+    # ax2.set_xticklabels(techs, rotation=30, fontsize=12)
+
+    ylabels = [format(label, ',.2f') for label in ax1.get_yticks()]
+    ax2.set_yticklabels(ylabels)
+    ax2.set_ylabel('F1-Score', color="black", fontsize=10)
+
+    labels = ["Accuracy", "F1-Score"]
+    legend_elements = [
+        Patch(facecolor=(217 / 255, 198 / 255, 176 / 255), label='Accuracy'),
+        Patch(facecolor=(120 / 255, 159 / 255, 138 / 255), label='F1-Score'),
+    ]
+    ax1.legend(handles=legend_elements, fancybox=False, shadow=False, fontsize=10)
+
+    # ax2.legend(loc='upper left', bbox_to_anchor=(0.5, 0.2), fancybox=False, shadow=False, ncol=6)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+
+    plt.savefig(out_path.replace("@ext", "png"), dpi=200)
+    plt.savefig(out_path.replace("@ext", "svg"), dpi=200)
+    plt.savefig(out_path.replace("@ext", "pdf"), dpi=200)
 
 
 def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None, features_to_select=64):
@@ -239,32 +354,17 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None,
         "SVM": SVC(),
         "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32)),
         "Naive Bayes": MultinomialNB(),
-        "Adaboost": AdaBoostClassifier(n_estimators=100),
-        #"Decision Tree": DecisionTreeClassifier(max_depth=20),
-        #"XGBoost": XGBClassifier(n_estimators=100),
-        #"Random Forest": RandomForestClassifier(n_estimators=100, max_depth=20)
+        "Adaboost": AdaBoostClassifier(n_estimators=100)
     }
-
-    # rfecv = RFECV(
-    #     estimator=DecisionTreeClassifier(max_depth=20),
-    #     min_features_to_select=features_to_select,
-    #     n_jobs=-1,
-    #     scoring="accuracy",
-    #     cv=5,
-    #     verbose=True
-    # )
 
     clf = AdaBoostClassifier(n_estimators=20)
     selectFS = SelectFromModel(clf, prefit=False, max_features=500)
-    # Analyze the performance according to N of features
-    logging.info("Running RFE selection")
+
+    logging.info("Running Feature selection")
     x_train = selectFS.fit_transform(x_train, y_train)
     x_test = selectFS.transform(x_test)
 
-    # print("Total columns: ", len(features), " Selected columns: ",
-    #       len(np.array(features)[rfecv.support_]))
-    # print(list(np.array(features)[rfecv.support_]))
-
+    logging.info("Training and testing models")
     for model_name in models.keys():
         if model_name not in dict_results.keys():
             dict_results[model_name] = {"acc": [], "f1": []}
@@ -274,7 +374,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None,
         model = models[model_name]
         model.fit(x_train, y_train)
         y_pred = model.predict(x_test)
-        # if model_name in ["XGBoost"]:
+        # if model_name in ["Adaboost"]:
         #     logging.info("=" * 50)
         #     logging.info("%s: Feature importances (> 0.2)" % model_name)
         #     for feat, imp in zip(features, model.feature_importances_):
@@ -294,5 +394,9 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None,
 
 if __name__ == "__main__":
     setup_logging()
+    plt.rc('axes', axisbelow=True)
     # modeling_w_text_only()
-    modeling_w_attributes_and_text()
+    #modeling_w_attributes_and_text()
+
+    df = pd.read_csv("modeling/results/results_attr_text.csv")
+    plot_acc_f1(df, "modeling/results/results_attr_text.@ext")

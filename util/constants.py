@@ -15,6 +15,7 @@ RAW_DOCS_FOLDER = "raw_docs"
 PROC_DOCS_FOLDER = "proc_docs"
 PATH_RAW_DOCS = os.path.join("dataset", RAW_DOCS_FOLDER)
 PATH_PROC_DOCS = os.path.join("dataset", PROC_DOCS_FOLDER)
+PATH_RESULTS = os.path.join("modeling", "results")
 
 # Classe Positiva é solta
 
