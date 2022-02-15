@@ -346,7 +346,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         "SVM": SVC(),
         "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32)),
         "Naive Bayes": MultinomialNB(),
-        "Adaboost": AdaBoostClassifier(n_estimators=100)
+        "Adaboost": AdaBoostClassifier(n_estimators=100 )
     }
 
     if x_train.shape[1] >= 500:
@@ -378,7 +378,6 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
             df = pd.DataFrame(features_imp, columns=["Feature", "Importance"])
             df.sort_values(by=["Importance"], ascending=False, inplace=True)
             df.to_excel(os.path.join(PATH_RESULTS, "feature_imp_" + type_modeling + ".xlsx"), index=False)
-
 
         acc = metrics.accuracy_score(y_test, y_pred)
         f1 = metrics.f1_score(y_test, y_pred, average="macro")
