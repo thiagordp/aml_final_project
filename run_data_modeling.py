@@ -43,7 +43,6 @@ def modeling_w_text_only():
     y = np.array(dataset_df["Resultado Doc"])
 
     dict_results = {}
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
     print("Training/Testing using 5-fold cross-validation")
     for train_index, test_index in skf.split(X, y):
@@ -58,7 +57,9 @@ def modeling_w_text_only():
         X_train_bow = scaler.fit_transform(X_train_bow)
         X_test_bow = scaler.transform(X_test_bow)
 
-        base_modeling(X_train_bow, X_test_bow, y_train, y_test, bow_model.get_feature_names_out(), dict_results)
+        base_modeling(X_train_bow, X_test_bow, y_train, y_test, bow_model.get_feature_names_out(),
+                      dict_results, type_modeling="text")
+
     print("")
 
     data = []
@@ -73,19 +74,12 @@ def modeling_w_text_only():
         data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
     df = pd.DataFrame(data, columns=["Model", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df.sort_values(by=["Model"], ascending=True, inplace=True)
 
-    # Plot Ac
-    x, y, e = df["Model"], df["Mean Acc"], df["Std Acc"]
-    plt.title("Accuracy for the models using only report text")
-    plt.errorbar(x, y, e, linestyle='None', marker='^')
-    plt.show()
+    df.to_csv(os.path.join(PATH_RESULTS, "results_text.csv"), index=False)
 
-    plt.title("F1-Score for the models using only report text")
-    x, y, e = df["Model"], df["Mean F1"], df["Std F1"]
-    plt.errorbar(x, y, e, linestyle='None', marker='^')
-    plt.show()
-
-    # Plot F1
+    output_path = os.path.join(PATH_RESULTS, "results_text.@ext")
+    plot_acc_f1(df, output_path)
 
 
 def modeling_w_attributes():
@@ -95,14 +89,13 @@ def modeling_w_attributes():
     dataset_df = pd.read_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"))
 
     dataset_df.drop(
-        columns=["Número do doc", "Resultado Doc Num", "data_documento", "ano_documento", "data_protocolo",
-                 "diff_datas", "orgao_origem", "Conteúdo"],
+        columns=["Número do doc", "Resultado Doc Num", "data_documento", "data_protocolo",
+                 "data_doc_extr", "orgao_origem", "Conteúdo"],
         inplace=True)
     features_df = dataset_df.drop(columns=["Resultado Doc"])
 
     X = np.array(features_df)
     y = np.array(dataset_df["Resultado Doc"])
-    print("Nan:", list(features_df.isnull().sum()))
 
     feature_names = list(features_df.columns)
     # print("Features: ", feature_names)
@@ -119,7 +112,7 @@ def modeling_w_attributes():
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
 
-        base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results)
+        base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results, type_modeling="attr")
     print("")
 
     data = []
@@ -134,24 +127,19 @@ def modeling_w_attributes():
         data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
     df = pd.DataFrame(data, columns=["Model", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df.sort_values(by=["Model"], ascending=True, inplace=True)
 
-    # Plot Ac
-    x, y, e = df["Model"], df["Mean Acc"], df["Std Acc"]
-    plt.title("Accuracy for the models using only report text")
-    plt.errorbar(x, y, e, linestyle='None', marker='^')
-    plt.show()
+    df.to_csv(os.path.join(PATH_RESULTS, "results_attr.csv"), index=False)
 
-    plt.title("F1-Score for the models using only report text")
-    x, y, e = df["Model"], df["Mean F1"], df["Std F1"]
-    plt.errorbar(x, y, e, linestyle='None', marker='^')
-    plt.show()
+    output_path = os.path.join(PATH_RESULTS, "results_attr.@ext")
+    plot_acc_f1(df, output_path)
 
     # Plot F1
 
 
 def modeling_w_attributes_and_text():
     # load dataset
-    logging.info("Modeling using only attributes")
+    logging.info("Modeling using only attributes and text")
     logging.info("Loading and preprocessing")
     dataset_df = pd.read_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"))
 
@@ -196,10 +184,11 @@ def modeling_w_attributes_and_text():
         X_test = np.concatenate((X_test, x_test_bow), axis=1)
 
         scaler = StandardScaler(with_mean=False)
-        # X_train = scaler.fit_transform(X_train)
-        # X_test = scaler.transform(X_test)
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
 
-        base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results, features_to_select=1000)
+        base_modeling(X_train, X_test, y_train, y_test, features_names, dict_results, features_to_select=1000,
+                      type_modeling="attr_text")
 
     print("")
 
@@ -243,7 +232,7 @@ def plot_acc_f1(df, out_path):
     # Plot R2 and RMSE in the same plot
 
     # plt.figure(figsize=(15, 8))
-    #plt.grid()
+    # plt.grid()
     fig, ax1 = plt.subplots()
 
     fig.set_figheight(4)
@@ -267,10 +256,12 @@ def plot_acc_f1(df, out_path):
         yerr = accs_std[i_tech]
 
         if it_techs == 0:
-            ax1.bar(x[it_techs] - (bar_width / 2), data, yerr=yerr, color=(217 / 255, 198 / 255, 176 / 255), width=bar_width,
+            ax1.bar(x[it_techs] - (bar_width / 2), data, yerr=yerr, color=(217 / 255, 198 / 255, 176 / 255),
+                    width=bar_width,
                     label="Accuracy")
         else:
-            ax1.bar(x[it_techs] - (bar_width / 2), data,yerr=yerr, color=(217 / 255, 198 / 255, 176 / 255), width=bar_width)
+            ax1.bar(x[it_techs] - (bar_width / 2), data, yerr=yerr, color=(217 / 255, 198 / 255, 176 / 255),
+                    width=bar_width)
 
         label = "{:.1%}".format(data)
 
@@ -346,7 +337,8 @@ def plot_acc_f1(df, out_path):
     plt.savefig(out_path.replace("@ext", "pdf"), dpi=200)
 
 
-def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None, features_to_select=64):
+def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results=None, features_to_select=64,
+                  type_modeling=""):
     if dict_results is None:
         dict_results = dict()
 
@@ -357,14 +349,18 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None,
         "Adaboost": AdaBoostClassifier(n_estimators=100)
     }
 
-    clf = AdaBoostClassifier(n_estimators=20)
-    selectFS = SelectFromModel(clf, prefit=False, max_features=500)
-
-    logging.info("Running Feature selection")
-    x_train = selectFS.fit_transform(x_train, y_train)
-    x_test = selectFS.transform(x_test)
+    if x_train.shape[1] >= 500:
+        logging.info("Running Feature selection")
+        selectFS = SelectKBest(chi2, k=100)
+        x_train = selectFS.fit_transform(x_train, y_train)
+        x_test = selectFS.transform(x_test)
+        supports = selectFS.get_support(indices=True)
+        features = pd.Series(features_names)[supports]
+    else:
+        features = features_names
 
     logging.info("Training and testing models")
+
     for model_name in models.keys():
         if model_name not in dict_results.keys():
             dict_results[model_name] = {"acc": [], "f1": []}
@@ -374,12 +370,15 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None,
         model = models[model_name]
         model.fit(x_train, y_train)
         y_pred = model.predict(x_test)
-        # if model_name in ["Adaboost"]:
-        #     logging.info("=" * 50)
-        #     logging.info("%s: Feature importances (> 0.2)" % model_name)
-        #     for feat, imp in zip(features, model.feature_importances_):
-        #         if imp >= 0.01:
-        #             logging.info("%s: %.3f" % (feat, imp))
+        if model_name in ["Adaboost"]:
+
+            features_imp = []
+            for feat, imp in zip(features, model.feature_importances_):
+                features_imp.append([feat, imp])
+            df = pd.DataFrame(features_imp, columns=["Feature", "Importance"])
+            df.sort_values(by=["Importance"], ascending=False, inplace=True)
+            df.to_excel(os.path.join(PATH_RESULTS, "feature_imp_" + type_modeling + ".xlsx"), index=False)
+
 
         acc = metrics.accuracy_score(y_test, y_pred)
         f1 = metrics.f1_score(y_test, y_pred, average="macro")
@@ -394,9 +393,10 @@ def base_modeling(x_train, x_test, y_train, y_test, features, dict_results=None,
 
 if __name__ == "__main__":
     setup_logging()
+    logging.info("=" * 50)
+    logging.info("DATA MODELLING")
     plt.rc('axes', axisbelow=True)
-    # modeling_w_text_only()
-    #modeling_w_attributes_and_text()
 
-    df = pd.read_csv("modeling/results/results_attr_text.csv")
-    plot_acc_f1(df, "modeling/results/results_attr_text.@ext")
+    modeling_w_text_only()
+    modeling_w_attributes_and_text()
+    modeling_w_attributes()
