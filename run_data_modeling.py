@@ -4,24 +4,30 @@
 import logging
 import os.path
 import warnings
+from collections import Counter
 
 import matplotlib
 import numpy as np
 import pandas as pd
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import RandomUnderSampler
 from matplotlib import pyplot as plt
 from matplotlib.patches import Patch
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, BaggingClassifier
+from numpy import where
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, BaggingClassifier, \
+    IsolationForest
 from sklearn.feature_selection import RFECV, SelectKBest, chi2, SelectFromModel
 from sklearn.inspection import permutation_importance
 from sklearn import metrics
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import MultinomialNB
 from xgboost import XGBClassifier
+import imblearn
 
 from feature_extraction.text_feature_extraction import extract_bow
 from preprocessing.preprocess_raw_documents import raw_corpus_preprocessing
@@ -337,6 +343,10 @@ def plot_acc_f1(df, out_path):
     plt.savefig(out_path.replace("@ext", "pdf"), dpi=200)
 
 
+def model_selection(model, params, x_train, y_train):
+    pass
+
+
 def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results=None, features_to_select=64,
                   type_modeling=""):
     if dict_results is None:
@@ -344,10 +354,59 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
     models = {
         "SVM": SVC(),
-        "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32)),
+        "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32), early_stopping=True, shuffle=True),
         "Naive Bayes": MultinomialNB(),
-        "Adaboost": AdaBoostClassifier(n_estimators=100 )
+        "Adaboost": AdaBoostClassifier(n_estimators=100)
     }
+
+    hyper_params = {
+        "SVM": {
+            "C": [1, 2, 5, 10, 100, 1000],
+            'gamma': [0.001, 0.0001, 0.01, 0.1, 0.5, 1],
+            "kernel": ["rbf", "poly", "sigmoid"],
+            "coef0": [0, 0.01, 0.1, 0.5, 1]
+        },
+        "MLP": {
+            "hidden_layer_sizes": [10, 50, 100, (32, 32), (32, 32, 32)],
+            "activation": ["logistic", "relu"],
+            "batch_size": [8, 16, 32, 64, 128],
+            "solver": ["sgd", "adam"]
+        },
+        "Naive Bayes": {
+            "alpha": [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+            "fit_prior": [True, False],
+        },
+        "Adaboost": {
+            "n_estimators": [8, 16, 32, 64, 128, 256, 512],
+            "learning_rate": [0.001, 0.01,0.1, 0.5, 1],
+            "algorithm": ["SAMME", "SAMME.R"],
+            "base_estimator": [
+                DecisionTreeClassifier(max_depth=1),
+                DecisionTreeClassifier(max_depth=2),
+                MLPClassifier(hidden_layer_sizes=(4,)),
+                MLPClassifier(hidden_layer_sizes=(8,)),
+                MLPClassifier(hidden_layer_sizes=(16,))
+            ]
+        }
+    }
+
+    # eu diria remoção de outliers primeiro, depois feature selection,
+    # depois subsampling/oversampling, isso pra essas técnicas não influenciarem na tua seleção de features
+    # lembrando que se for usar cross-validation tem que deixar under/oversampling pra depois
+    logging.info("Outliers removal")
+    logging.info("Datasamples for each class before remove outliers")
+    model = IsolationForest(n_estimators=100, max_samples='auto', contamination=0.05, n_jobs=4)
+
+    print(Counter(y_train))
+    predictions = model.fit_predict(x_train, y_train)
+    outliers_index = where(predictions != -1)
+    x_train = x_train[outliers_index]
+    y_train = y_train[outliers_index]
+
+    predict_test = model.predict(x_test)
+    outliers_index = where(predict_test != -1)
+    x_test = x_test[outliers_index]
+    y_test = y_test[outliers_index]
 
     if x_train.shape[1] >= 500:
         logging.info("Running Feature selection")
@@ -359,15 +418,40 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     else:
         features = features_names
 
+    logging.info("Oversampling")
+    logging.info("Datasamples for each class before oversampling")
+    counter = Counter(y_train)
+    print(Counter(y_train))
+    # under = RandomUnderSampler(sampling_strategy=0.4)
+    # x_train, y_train = under.fit_resample(x_train, y_train)
+    over = SMOTE(sampling_strategy=0.4)
+    x_train, y_train = over.fit_resample(x_train, y_train)
+    logging.info("Datasamples for each class after oversampling/undersampling")
+    counter = Counter(y_train)
+    print(counter)
+
+
     logging.info("Training and testing models")
 
     for model_name in models.keys():
         if model_name not in dict_results.keys():
             dict_results[model_name] = {"acc": [], "f1": []}
 
+        logging.info("Running model selection for %s" % model_name)
+        model = models[model_name]
+        hyper = hyper_params[model_name]
+
+        cv = GridSearchCV(model, hyper, cv=5, verbose=3, n_jobs=8)
+        cv.fit(x_train, y_train)
+
+        logging.info("Best parameters set found on training set:\n")
+        logging.info(cv.best_params_)
+
+        model = cv.best_estimator_
+
         # logging.info("-"*50)
         # logging.info("Training %s classifier" % model_name)
-        model = models[model_name]
+
         model.fit(x_train, y_train)
         y_pred = model.predict(x_test)
         if model_name in ["Adaboost"]:
@@ -397,5 +481,5 @@ if __name__ == "__main__":
     plt.rc('axes', axisbelow=True)
 
     modeling_w_text_only()
-    modeling_w_attributes_and_text()
-    modeling_w_attributes()
+    # modeling_w_attributes_and_text()
+    # modeling_w_attributes()
