@@ -193,7 +193,7 @@ def check_dates():
 
 def preprocess_text():
     # TODO: Filtering, stemming (?), lemmat(?).. check with related work
-    remove_result_from_documents(PATH_RAW_DOCS, PATH_PROC_DOCS)
+    #remove_result_from_documents(PATH_RAW_DOCS, PATH_PROC_DOCS)
     remove_useless_headers_and_strings(PATH_PROC_DOCS, PATH_PROC_DOCS)
 
     raw_corpus_preprocessing(PATH_PROC_DOCS, PATH_PROC_DOCS)

@@ -29,6 +29,7 @@ from sklearn.naive_bayes import MultinomialNB
 from xgboost import XGBClassifier
 import imblearn
 
+from explainability.explain_shap import explain_shap
 from feature_extraction.text_feature_extraction import extract_bow
 from preprocessing.preprocess_raw_documents import raw_corpus_preprocessing
 from util.constants import PATH_PLANILHA_RAW_TEXT, PATH_PLANILHA_PROC, PATH_RESULTS
@@ -353,7 +354,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         dict_results = dict()
 
     models = {
-        "SVM": SVC(),
+        "SVM": SVC(max_iter=500),
         "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32), early_stopping=True, shuffle=True),
         "Naive Bayes": MultinomialNB(),
         "Adaboost": AdaBoostClassifier(n_estimators=100)
@@ -432,7 +433,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
 
     logging.info("Training and testing models")
-
+    count = 0
     for model_name in models.keys():
         if model_name not in dict_results.keys():
             dict_results[model_name] = {"acc": [], "f1": []}
@@ -449,8 +450,8 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
         model = cv.best_estimator_
 
-        # logging.info("-"*50)
-        # logging.info("Training %s classifier" % model_name)
+        logging.info("-"*50)
+        logging.info("Training %s classifier" % model_name)
 
         model.fit(x_train, y_train)
         y_pred = model.predict(x_test)
