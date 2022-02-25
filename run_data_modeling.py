@@ -52,20 +52,26 @@ def modeling_w_text_only():
     dict_results = {}
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
     print("Training/Testing using 5-fold cross-validation")
+    count = 0
+    selected_models={}
     for train_index, test_index in skf.split(X, y):
+        count += 1
         print("=", end="")
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
 
-        X_train_bow, bow_model = extract_bow(X_train, method="TF-IDF")
+        X_train_bow, bow_model = extract_bow(X_train, method="TF")
         X_test_bow = extract_bow(X_test, fitted_bow=bow_model)
 
         scaler = StandardScaler(with_mean=False)
         X_train_bow = scaler.fit_transform(X_train_bow)
         X_test_bow = scaler.transform(X_test_bow)
+        run_model_selection = True
 
+        if count > 1:
+            run_model_selection = False
         base_modeling(X_train_bow, X_test_bow, y_train, y_test, bow_model.get_feature_names_out(),
-                      dict_results, type_modeling="text")
+                      dict_results, type_modeling="text", run_model_selection=run_model_selection, sel_models=selected_models)
 
     print("")
 
@@ -110,7 +116,11 @@ def modeling_w_attributes():
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
     print("Training/Testing using 5-fold cross-validation")
+    count = 0
+
+    selected_models={}
     for train_index, test_index in skf.split(X, y):
+        count += 1
         print("=", end="")
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -118,8 +128,11 @@ def modeling_w_attributes():
         scaler = StandardScaler(with_mean=False)
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
-
-        base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results, type_modeling="attr")
+        run_model_selection = True
+        if count > 1:
+            run_model_selection = False
+        base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results, type_modeling="attr",
+                      run_model_selection=run_model_selection, sel_models=selected_models)
     print("")
 
     data = []
@@ -170,6 +183,9 @@ def modeling_w_attributes_and_text():
     skf = StratifiedKFold(n_splits=cross_val_splits, shuffle=True, random_state=142)
     print("Training/Testing using 5-fold cross-validation")
     count = 0
+    selected_models = {
+
+    }
     for train_index, test_index in skf.split(X, y):
         logging.info("=" * 50)
 
@@ -194,8 +210,12 @@ def modeling_w_attributes_and_text():
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
 
+        run_model_selection = True
+        if count > 1:
+            run_model_selection = False
+
         base_modeling(X_train, X_test, y_train, y_test, features_names, dict_results, features_to_select=1000,
-                      type_modeling="attr_text")
+                      type_modeling="attr_text", run_model_selection=run_model_selection, sel_models=selected_models)
 
     print("")
 
@@ -349,29 +369,33 @@ def model_selection(model, params, x_train, y_train):
 
 
 def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results=None, features_to_select=64,
-                  type_modeling=""):
+                  type_modeling="", run_model_selection=True, sel_models=dict()):
     if dict_results is None:
         dict_results = dict()
 
     models = {
-        "SVM": SVC(max_iter=500),
-        "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32), early_stopping=True, shuffle=True),
+        "Adaboost": AdaBoostClassifier(n_estimators=100),
         "Naive Bayes": MultinomialNB(),
-        "Adaboost": AdaBoostClassifier(n_estimators=100)
+        "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32), early_stopping=True, shuffle=True),
+        "SVM": SVC(max_iter=2000),
     }
+
 
     hyper_params = {
         "SVM": {
-            "C": [1, 2, 5, 10, 100, 1000],
-            'gamma': [0.001, 0.0001, 0.01, 0.1, 0.5, 1],
+            "C": [1, 5, 10, 25, 50, 75, 100],
+            'gamma': [0.001, 0.0001, 0.01, 0.05, 0.1, 0.5, 0.3, 1],
             "kernel": ["rbf", "poly", "sigmoid"],
-            "coef0": [0, 0.01, 0.1, 0.5, 1]
+            "coef0": [0, 0.01, 0.1, 0.5, 0.3, 0.7, 1],
+            "decision_function_shape": ["ovo", "ovr"],
+            "degree": [1, 3, 5, 7]
         },
         "MLP": {
-            "hidden_layer_sizes": [10, 50, 100, (32, 32), (32, 32, 32)],
-            "activation": ["logistic", "relu"],
-            "batch_size": [8, 16, 32, 64, 128],
-            "solver": ["sgd", "adam"]
+            "hidden_layer_sizes": [32, (32, 32), (32, 32, 32), (64, 64, 64)],
+            "activation": ["logistic", "relu", "tanh", "identity"],
+            "batch_size": [8, 16, 32, 64, 128, 256],
+            "solver": ["sgd", "adam", "lbfgs"],
+            "learning_rate": ["constant", "invscaling", "adaptive"]
         },
         "Naive Bayes": {
             "alpha": [0, 0.2, 0.4, 0.6, 0.8, 1.0],
@@ -379,14 +403,12 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         },
         "Adaboost": {
             "n_estimators": [8, 16, 32, 64, 128, 256, 512],
-            "learning_rate": [0.001, 0.01,0.1, 0.5, 1],
+            "learning_rate": [0.1, 0.25, 0.5, 0.6, 0.75, 0.9, 1],
             "algorithm": ["SAMME", "SAMME.R"],
             "base_estimator": [
                 DecisionTreeClassifier(max_depth=1),
                 DecisionTreeClassifier(max_depth=2),
-                MLPClassifier(hidden_layer_sizes=(4,)),
-                MLPClassifier(hidden_layer_sizes=(8,)),
-                MLPClassifier(hidden_layer_sizes=(16,))
+                DecisionTreeClassifier(max_depth=3),
             ]
         }
     }
@@ -431,27 +453,37 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     counter = Counter(y_train)
     print(counter)
 
-
     logging.info("Training and testing models")
     count = 0
     for model_name in models.keys():
+
+        logging.info("-" * 50)
         if model_name not in dict_results.keys():
             dict_results[model_name] = {"acc": [], "f1": []}
 
-        logging.info("Running model selection for %s" % model_name)
         model = models[model_name]
         hyper = hyper_params[model_name]
 
-        cv = GridSearchCV(model, hyper, cv=5, verbose=3, n_jobs=8)
-        cv.fit(x_train, y_train)
+        if run_model_selection:
+            logging.info("Running model selection for %s" % model_name)
+            cv = GridSearchCV(model, hyper, cv=5, verbose=3, n_jobs=8)
+            cv.fit(x_train, y_train)
 
-        logging.info("Best parameters set found on training set:\n")
-        logging.info(cv.best_params_)
+            models[model_name] = cv.best_estimator_
+            logging.info("Best parameters set found on training set:")
+            logging.info(cv.best_params_)
+            logging.info(cv.best_estimator_)
+            logging.info("Results for the best estimator")
+            logging.info(cv.cv_results_["mean_test_score"])
 
-        model = cv.best_estimator_
+            if model_name not in sel_models.keys():
+                sel_models[model_name] = cv.best_estimator_
+                print(sel_models)
 
-        logging.info("-"*50)
+        model = sel_models[model_name]
+
         logging.info("Training %s classifier" % model_name)
+        logging.info(model)
 
         model.fit(x_train, y_train)
         y_pred = model.predict(x_test)
@@ -470,7 +502,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         dict_results[model_name]["acc"].append(acc)
         dict_results[model_name]["f1"].append(f1)
 
-        # logging.info("Acc: %.4f \tF1: %.4f" % (acc, f1))
+        logging.info("Acc: %.4f \tF1: %.4f" % (acc, f1))
 
     return dict_results
 
