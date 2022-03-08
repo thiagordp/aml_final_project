@@ -53,7 +53,7 @@ def modeling_w_text_only():
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
     print("Training/Testing using 5-fold cross-validation")
     count = 0
-    selected_models={}
+    selected_models = {}
     for train_index, test_index in skf.split(X, y):
         count += 1
         print("=", end="")
@@ -71,7 +71,8 @@ def modeling_w_text_only():
         if count > 1:
             run_model_selection = False
         base_modeling(X_train_bow, X_test_bow, y_train, y_test, bow_model.get_feature_names_out(),
-                      dict_results, type_modeling="text", run_model_selection=run_model_selection, sel_models=selected_models)
+                      dict_results, type_modeling="text", run_model_selection=run_model_selection,
+                      sel_models=selected_models)
 
     print("")
 
@@ -118,7 +119,7 @@ def modeling_w_attributes():
     print("Training/Testing using 5-fold cross-validation")
     count = 0
 
-    selected_models={}
+    selected_models = {}
     for train_index, test_index in skf.split(X, y):
         count += 1
         print("=", end="")
@@ -380,7 +381,6 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         "SVM": SVC(max_iter=2000),
     }
 
-
     hyper_params = {
         "SVM": {
             "C": [1, 5, 10, 25, 50, 75, 100],
@@ -507,12 +507,15 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     return dict_results
 
 
-if __name__ == "__main__":
-    setup_logging()
+def run_data_modeling():
     logging.info("=" * 50)
     logging.info("DATA MODELLING")
     plt.rc('axes', axisbelow=True)
 
     modeling_w_text_only()
-    # modeling_w_attributes_and_text()
-    # modeling_w_attributes()
+    modeling_w_attributes_and_text()
+    modeling_w_attributes()
+
+
+if __name__ == "__main__":
+    run_data_modeling()

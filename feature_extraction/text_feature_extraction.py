@@ -1,7 +1,7 @@
 from sklearn.feature_extraction.text import *
 
 
-def extract_bow(corpus, method="TF", fitted_bow=None, ngram=(1,2), max_features=5000):
+def extract_bow(corpus, method="TF", fitted_bow=None, ngram=(1, 2), max_features=5000):
     if fitted_bow:
         return fitted_bow.transform(corpus).toarray()
 

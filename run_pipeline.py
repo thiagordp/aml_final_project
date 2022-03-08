@@ -38,9 +38,9 @@ def run_pipeline():
     # Second EDA
     eda_part_ii()
 
-    modeling_w_text_only()
-    modeling_w_attributes_and_text()
-    modeling_w_attributes()
+    #modeling_w_text_only()
+    #modeling_w_attributes_and_text()
+    #modeling_w_attributes()
 
 
 if __name__ == '__main__':
