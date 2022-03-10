@@ -1,6 +1,10 @@
 """
 
 """
+import warnings
+
+warnings.simplefilter("ignore")
+
 import logging
 import os.path
 import warnings
@@ -50,31 +54,40 @@ def modeling_w_text_only():
     y = np.array(dataset_df["Resultado Doc"])
 
     dict_results = {}
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
-    print("Training/Testing using 5-fold cross-validation")
-    count = 0
+
+    k_fold = 5
+    # skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
+    #
+    # count = 1
+    # for train_index, test_index in skf.split(X, y):
+    #
+    #     logging.info("="*50)
+    #     logging.info("Cross val fold %d of %d" % (count, k_fold))
+    #     X_train_val, X_test = X[train_index], X[test_index]
+    #     y_train_val, y_test = y[train_index], y[test_index]
+
+    # print("Training/Testing using 5-fold cross-validation")
+    X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142)
+
     selected_models = {}
-    for train_index, test_index in skf.split(X, y):
-        count += 1
-        print("=", end="")
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
 
-        X_train_bow, bow_model = extract_bow(X_train, method="TF")
-        X_test_bow = extract_bow(X_test, fitted_bow=bow_model)
+    # Train set is used to grid search
+    # Test set is used to final metric
 
-        scaler = StandardScaler(with_mean=False)
-        X_train_bow = scaler.fit_transform(X_train_bow)
-        X_test_bow = scaler.transform(X_test_bow)
-        run_model_selection = True
+    X_train_bow, bow_model = extract_bow(X_train_val, method="TF-IDF", ngram=(1, 2))
+    X_test_bow = extract_bow(X_test, fitted_bow=bow_model)
 
-        if count > 1:
-            run_model_selection = False
-        base_modeling(X_train_bow, X_test_bow, y_train, y_test, bow_model.get_feature_names_out(),
-                      dict_results, type_modeling="text", run_model_selection=run_model_selection,
-                      sel_models=selected_models)
+    scaler = StandardScaler(with_mean=False)
+    X_train_bow = scaler.fit_transform(X_train_bow)
+    X_test_bow = scaler.transform(X_test_bow)
+    run_model_selection = True
+
+    base_modeling(X_train_bow, X_test_bow, y_train_val, y_test, bow_model.get_feature_names_out(),
+                  dict_results, type_modeling="text", run_model_selection=run_model_selection,
+                  sel_models=selected_models)
 
     print("")
+    logging.info("Saving metrics and results")
 
     data = []
     for model_name in dict_results.keys():
@@ -87,7 +100,7 @@ def modeling_w_text_only():
 
         data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
-    df = pd.DataFrame(data, columns=["Model", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df = pd.DataFrame(data, columns=["Model", "Model obj", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
     df.to_csv(os.path.join(PATH_RESULTS, "results_text.csv"), index=False)
@@ -115,28 +128,25 @@ def modeling_w_attributes():
     # print("Features: ", feature_names)
     dict_results = {}
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
-    print("Training/Testing using 5-fold cross-validation")
+    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142)
+
     count = 0
 
     selected_models = {}
-    for train_index, test_index in skf.split(X, y):
-        count += 1
-        print("=", end="")
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
 
-        scaler = StandardScaler(with_mean=False)
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.transform(X_test)
-        run_model_selection = True
-        if count > 1:
-            run_model_selection = False
-        base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results, type_modeling="attr",
-                      run_model_selection=run_model_selection, sel_models=selected_models)
+    scaler = StandardScaler(with_mean=False)
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+    run_model_selection = True
+    if count > 1:
+        run_model_selection = False
+    base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results, type_modeling="attr",
+                  run_model_selection=run_model_selection, sel_models=selected_models)
     print("")
 
     data = []
+
+    logging.info("Saving metrics and results")
     for model_name in dict_results.keys():
         accs = dict_results[model_name]["acc"]
         mean_acc = np.median(accs)
@@ -180,43 +190,38 @@ def modeling_w_attributes_and_text():
     dict_results = {}
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
-    cross_val_splits = 5
-    skf = StratifiedKFold(n_splits=cross_val_splits, shuffle=True, random_state=142)
-    print("Training/Testing using 5-fold cross-validation")
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142)
+
     count = 0
     selected_models = {
 
     }
-    for train_index, test_index in skf.split(X, y):
-        logging.info("=" * 50)
 
-        count += 1
-        logging.info("Running cross-val - %d of %d" % (count, cross_val_splits))
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+    logging.info("=" * 50)
 
-        x_train_bow, bow_model = extract_bow(X_train[:, 1], method="TF-IDF")
-        x_test_bow = extract_bow(X_test[:, 1], fitted_bow=bow_model)
-        bow_features = bow_model.get_feature_names_out()
+    x_train_bow, bow_model = extract_bow(X_train[:, 1], method="TF-IDF")
+    x_test_bow = extract_bow(X_test[:, 1], fitted_bow=bow_model)
+    bow_features = bow_model.get_feature_names_out()
 
-        X_train = np.delete(X_train, 1, 1)  # Remove second column (Conteúdo)
-        X_test = np.delete(X_test, 1, 1)  # Remove second column (Conteúdo)
+    X_train = np.delete(X_train, 1, 1)  # Remove second column (Conteúdo)
+    X_test = np.delete(X_test, 1, 1)  # Remove second column (Conteúdo)
 
-        features_names.extend(bow_features)
+    features_names.extend(bow_features)
 
-        X_train = np.concatenate((X_train, x_train_bow), axis=1)
-        X_test = np.concatenate((X_test, x_test_bow), axis=1)
+    X_train = np.concatenate((X_train, x_train_bow), axis=1)
+    X_test = np.concatenate((X_test, x_test_bow), axis=1)
 
-        scaler = StandardScaler(with_mean=False)
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.transform(X_test)
+    scaler = StandardScaler(with_mean=False)
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
 
-        run_model_selection = True
-        if count > 1:
-            run_model_selection = False
+    run_model_selection = True
+    if count > 1:
+        run_model_selection = False
 
-        base_modeling(X_train, X_test, y_train, y_test, features_names, dict_results, features_to_select=1000,
-                      type_modeling="attr_text", run_model_selection=run_model_selection, sel_models=selected_models)
+    base_modeling(X_train, X_test, y_train, y_test, features_names, dict_results, features_to_select=1000,
+                  type_modeling="attr_text", run_model_selection=run_model_selection, sel_models=selected_models)
 
     print("")
 
@@ -365,10 +370,6 @@ def plot_acc_f1(df, out_path):
     plt.savefig(out_path.replace("@ext", "pdf"), dpi=200)
 
 
-def model_selection(model, params, x_train, y_train):
-    pass
-
-
 def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results=None, features_to_select=64,
                   type_modeling="", run_model_selection=True, sel_models=dict()):
     if dict_results is None:
@@ -379,6 +380,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         "Naive Bayes": MultinomialNB(),
         "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32), early_stopping=True, shuffle=True),
         "SVM": SVC(max_iter=2000),
+        "RF": RandomForestClassifier(n_jobs=8)
     }
 
     hyper_params = {
@@ -388,28 +390,50 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
             "kernel": ["rbf", "poly", "sigmoid"],
             "coef0": [0, 0.01, 0.1, 0.5, 0.3, 0.7, 1],
             "decision_function_shape": ["ovo", "ovr"],
-            "degree": [1, 3, 5, 7]
+            "degree": [1, 3, 5, 7],
+            "max_iter": [64, 128, 256, 512, 1024, 2048],
+            "cache_size": [64, 128, 256, 512]
         },
         "MLP": {
-            "hidden_layer_sizes": [32, (32, 32), (32, 32, 32), (64, 64, 64)],
+            "hidden_layer_sizes": [
+                32,
+                (32, 32),
+                (32, 32, 32),
+                (32, 32, 32, 32),
+                (32, 32, 32, 32, 32),
+                64,
+                (64, 64),
+                (64, 64, 64),
+                (64, 64, 64, 64),
+                (64, 64, 64, 64, 64),
+            ],
             "activation": ["logistic", "relu", "tanh", "identity"],
             "batch_size": [8, 16, 32, 64, 128, 256],
             "solver": ["sgd", "adam", "lbfgs"],
-            "learning_rate": ["constant", "invscaling", "adaptive"]
+            "learning_rate": ["constant", "invscaling", "adaptive"],
+            "learning_rate_init": [0.001, 0.01, 0.1, 1],
+            "max_iter": [64, 128, 256, 512, 1024]
         },
         "Naive Bayes": {
             "alpha": [0, 0.2, 0.4, 0.6, 0.8, 1.0],
             "fit_prior": [True, False],
         },
         "Adaboost": {
-            "n_estimators": [8, 16, 32, 64, 128, 256, 512],
+            "n_estimators": [8, 16, 32, 64, 128, 256, 512, 1024, 2048],
             "learning_rate": [0.1, 0.25, 0.5, 0.6, 0.75, 0.9, 1],
             "algorithm": ["SAMME", "SAMME.R"],
             "base_estimator": [
                 DecisionTreeClassifier(max_depth=1),
                 DecisionTreeClassifier(max_depth=2),
                 DecisionTreeClassifier(max_depth=3),
-            ]
+            ],
+        },
+        "RF": {
+            "n_estimators": [8, 16, 64, 256, 512, 1024, 2048],
+            "max_depth": [8, 16, 64, 256, 512, 1024],
+            "max_leaf_nodes": [8, 16, 64, 256, 512, 1024, 2048],
+            "criterion": ["gini", "entropy"],
+            "max_features": ["sqrt", "log2"]
         }
     }
 
@@ -443,7 +467,6 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
     logging.info("Oversampling")
     logging.info("Datasamples for each class before oversampling")
-    counter = Counter(y_train)
     print(Counter(y_train))
     # under = RandomUnderSampler(sampling_strategy=0.4)
     # x_train, y_train = under.fit_resample(x_train, y_train)
@@ -464,29 +487,28 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         model = models[model_name]
         hyper = hyper_params[model_name]
 
-        if run_model_selection:
-            logging.info("Running model selection for %s" % model_name)
-            cv = GridSearchCV(model, hyper, cv=5, verbose=3, n_jobs=8)
-            cv.fit(x_train, y_train)
+        logging.info("Running model selection for %s" % model_name)
+        cv = GridSearchCV(model, hyper, cv=5, verbose=3, n_jobs=8, scoring="f1_macro")
+        cv.fit(x_train, y_train)
 
-            models[model_name] = cv.best_estimator_
-            logging.info("Best parameters set found on training set:")
-            logging.info(cv.best_params_)
-            logging.info(cv.best_estimator_)
-            logging.info("Results for the best estimator")
-            logging.info(cv.cv_results_["mean_test_score"])
+        models[model_name] = cv.best_estimator_
+        logging.info("Best parameters set found on training set:")
+        logging.info(cv.best_params_)
+        logging.info(cv.best_estimator_)
+        logging.info("Results for the best estimator")
+        logging.info(cv.cv_results_["mean_test_score"])
 
-            if model_name not in sel_models.keys():
-                sel_models[model_name] = cv.best_estimator_
-                print(sel_models)
+        if model_name not in sel_models.keys():
+            sel_models[model_name] = cv.best_estimator_
+            print(sel_models)
 
         model = sel_models[model_name]
 
         logging.info("Training %s classifier" % model_name)
         logging.info(model)
 
-        model.fit(x_train, y_train)
         y_pred = model.predict(x_test)
+
         if model_name in ["Adaboost"]:
 
             features_imp = []
@@ -501,6 +523,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
         dict_results[model_name]["acc"].append(acc)
         dict_results[model_name]["f1"].append(f1)
+        dict_results[model_name]["model"] = str(model)
 
         logging.info("Acc: %.4f \tF1: %.4f" % (acc, f1))
 
