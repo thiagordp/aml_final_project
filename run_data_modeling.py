@@ -47,6 +47,7 @@ warnings.filterwarnings("ignore")
 
 def modeling_w_text_only():
     # Load dataset
+    logging.info("="*50)
     logging.info("Modeling using only raw text")
     logging.info("Loading and preprocessing")
     dataset_df = pd.read_csv(PATH_PLANILHA_RAW_TEXT.replace("@ext", "csv"))
@@ -97,13 +98,14 @@ def modeling_w_text_only():
         f1s = dict_results[model_name]["f1"]
         mean_f1 = np.mean(f1s)
         std_dev_f1 = np.std(f1s)
+        model = dict_results[model_name]["model"]
+        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
-        data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
-
-    df = pd.DataFrame(data, columns=["Model", "Model obj", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df = pd.DataFrame(data, columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
     df.to_csv(os.path.join(PATH_RESULTS, "results_text.csv"), index=False)
+    df.to_excel(os.path.join(PATH_RESULTS, "results_text.xlsx"), index=False)
 
     output_path = os.path.join(PATH_RESULTS, "results_text.@ext")
     plot_acc_f1(df, output_path)
@@ -111,6 +113,7 @@ def modeling_w_text_only():
 
 def modeling_w_attributes():
     # load dataset
+    logging.info("=" * 50)
     logging.info("Modeling using only attributes")
     logging.info("Loading and preprocessing")
     dataset_df = pd.read_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"))
@@ -155,12 +158,15 @@ def modeling_w_attributes():
         mean_f1 = np.median(f1s)
         std_dev_f1 = np.std(f1s)
 
+        model = dict_results[model_name]["model"]
+        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1])
         data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
-    df = pd.DataFrame(data, columns=["Model", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df = pd.DataFrame(data, columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
     df.to_csv(os.path.join(PATH_RESULTS, "results_attr.csv"), index=False)
+    df.to_excel(os.path.join(PATH_RESULTS, "results_attr.xlsx"), index=False)
 
     output_path = os.path.join(PATH_RESULTS, "results_attr.@ext")
     plot_acc_f1(df, output_path)
@@ -170,6 +176,7 @@ def modeling_w_attributes():
 
 def modeling_w_attributes_and_text():
     # load dataset
+    logging.info("=" * 50)
     logging.info("Modeling using only attributes and text")
     logging.info("Loading and preprocessing")
     dataset_df = pd.read_csv(PATH_PLANILHA_PROC.replace(".@ext", "_2.csv"))
@@ -233,13 +240,14 @@ def modeling_w_attributes_and_text():
         f1s = dict_results[model_name]["f1"]
         mean_f1 = np.mean(f1s)
         std_dev_f1 = np.std(f1s)
+        model = dict_results[model_name]["model"]
+        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
-        data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
-
-    df = pd.DataFrame(data, columns=["Model", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df = pd.DataFrame(data, columns=["Model", "Model details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
     df.to_csv(os.path.join(PATH_RESULTS, "results_attr_text.csv"), index=False)
+    df.to_excel(os.path.join(PATH_RESULTS, "results_attr_text.xlsx"), index=False)
 
     output_path = os.path.join(PATH_RESULTS, "results_attr_text.@ext")
     plot_acc_f1(df, output_path)
@@ -376,51 +384,47 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         dict_results = dict()
 
     models = {
+        "RF": RandomForestClassifier(n_jobs=8),
         "Adaboost": AdaBoostClassifier(n_estimators=100),
         "Naive Bayes": MultinomialNB(),
-        "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32), early_stopping=True, shuffle=True),
         "SVM": SVC(max_iter=2000),
-        "RF": RandomForestClassifier(n_jobs=8)
+        "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32), early_stopping=True, shuffle=True),
     }
 
     hyper_params = {
         "SVM": {
-            "C": [1, 5, 10, 25, 50, 75, 100],
-            'gamma': [0.001, 0.0001, 0.01, 0.05, 0.1, 0.5, 0.3, 1],
-            "kernel": ["rbf", "poly", "sigmoid"],
+            "C": [1, 2, 4, 8, 16, 32, 64],
+            'gamma': [0.001, 0.0001, 0.01, 0.05, 0.1, 0.5, 1],
+            "kernel": ["rbf", "poly", "sigmoid", "linear"],
             "coef0": [0, 0.01, 0.1, 0.5, 0.3, 0.7, 1],
             "decision_function_shape": ["ovo", "ovr"],
-            "degree": [1, 3, 5, 7],
-            "max_iter": [64, 128, 256, 512, 1024, 2048],
-            "cache_size": [64, 128, 256, 512]
+            "degree": [1, 3, 5],
+            "max_iter": [512, 1024, 2048],
+            "cache_size": [128, 256, 512]
         },
         "MLP": {
             "hidden_layer_sizes": [
-                32,
                 (32, 32),
                 (32, 32, 32),
                 (32, 32, 32, 32),
-                (32, 32, 32, 32, 32),
-                64,
                 (64, 64),
                 (64, 64, 64),
                 (64, 64, 64, 64),
-                (64, 64, 64, 64, 64),
             ],
             "activation": ["logistic", "relu", "tanh", "identity"],
-            "batch_size": [8, 16, 32, 64, 128, 256],
+            "batch_size": [32, 64, 128],
             "solver": ["sgd", "adam", "lbfgs"],
             "learning_rate": ["constant", "invscaling", "adaptive"],
-            "learning_rate_init": [0.001, 0.01, 0.1, 1],
-            "max_iter": [64, 128, 256, 512, 1024]
+            "learning_rate_init": [0.01, 0.1, 0.5],
+            "max_iter": [256, 512]
         },
         "Naive Bayes": {
-            "alpha": [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+            "alpha": [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
             "fit_prior": [True, False],
         },
         "Adaboost": {
-            "n_estimators": [8, 16, 32, 64, 128, 256, 512, 1024, 2048],
-            "learning_rate": [0.1, 0.25, 0.5, 0.6, 0.75, 0.9, 1],
+            "n_estimators": [64, 128, 256, 512, 1024],
+            "learning_rate": [0.1, 0.25, 0.5, 0.75, 1],
             "algorithm": ["SAMME", "SAMME.R"],
             "base_estimator": [
                 DecisionTreeClassifier(max_depth=1),
@@ -429,9 +433,9 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
             ],
         },
         "RF": {
-            "n_estimators": [8, 16, 64, 256, 512, 1024, 2048],
-            "max_depth": [8, 16, 64, 256, 512, 1024],
-            "max_leaf_nodes": [8, 16, 64, 256, 512, 1024, 2048],
+            "n_estimators": [64, 128, 256, 512, 1024, 2048],
+            "max_depth": [8, 16, 32, 64, 128],
+            "max_leaf_nodes": [64, 256, 512, 1024, 2048],
             "criterion": ["gini", "entropy"],
             "max_features": ["sqrt", "log2"]
         }
@@ -470,11 +474,9 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     print(Counter(y_train))
     # under = RandomUnderSampler(sampling_strategy=0.4)
     # x_train, y_train = under.fit_resample(x_train, y_train)
-    over = SMOTE(sampling_strategy=0.4)
-    x_train, y_train = over.fit_resample(x_train, y_train)
-    logging.info("Datasamples for each class after oversampling/undersampling")
-    counter = Counter(y_train)
-    print(counter)
+
+    # logging.info("Datasamples for each class after oversampling/undersampling")
+
 
     logging.info("Training and testing models")
     count = 0
@@ -491,12 +493,17 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         cv = GridSearchCV(model, hyper, cv=5, verbose=3, n_jobs=8, scoring="f1_macro")
         cv.fit(x_train, y_train)
 
+        over = SMOTE(sampling_strategy=0.4)
+        x_train_new, y_train_new = over.fit_resample(x_train, y_train)
+        counter = Counter(y_train_new)
+
         models[model_name] = cv.best_estimator_
+        models[model_name].fit(x_train_new, y_train_new)
+
         logging.info("Best parameters set found on training set:")
         logging.info(cv.best_params_)
         logging.info(cv.best_estimator_)
         logging.info("Results for the best estimator")
-        logging.info(cv.cv_results_["mean_test_score"])
 
         if model_name not in sel_models.keys():
             sel_models[model_name] = cv.best_estimator_
@@ -510,7 +517,6 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         y_pred = model.predict(x_test)
 
         if model_name in ["Adaboost"]:
-
             features_imp = []
             for feat, imp in zip(features, model.feature_importances_):
                 features_imp.append([feat, imp])
@@ -527,6 +533,22 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
         logging.info("Acc: %.4f \tF1: %.4f" % (acc, f1))
 
+    # Calculate baseline (predict always the majority class)
+    len_y_test = len(y_test)
+    counter = Counter(y_test)
+    most_common_label = counter.most_common(1)[0][0]  # in this case, it is "Preso"
+
+    y_pred = [most_common_label for i in range(len_y_test)] # Fake a baseline prediction with "Preso"
+
+    acc = metrics.accuracy_score(y_test, y_pred)
+    f1 = metrics.f1_score(y_test, y_pred, average="macro")
+    dict_results["baseline"] = {"acc": [], "f1": []}
+    dict_results["baseline"]["acc"].append(acc)
+    dict_results["baseline"]["f1"].append(f1)
+    dict_results["baseline"]["model"] = "Majority"
+    logging.info("Selected models")
+    logging.info(sel_models)
+
     return dict_results
 
 
@@ -541,4 +563,5 @@ def run_data_modeling():
 
 
 if __name__ == "__main__":
+    setup_logging()
     run_data_modeling()
