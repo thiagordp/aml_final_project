@@ -1,7 +1,6 @@
 Model,Model Details,Mean Acc,Std Acc,Mean F1,Std F1
-Adaboost,AdaBoostClassifier(n_estimators=128),0.7677824267782427,0.0,0.6712700507425513,0.0
-MLP,"MLPClassifier(early_stopping=True, hidden_layer_sizes=(32, 32, 32, 32))",0.7866108786610879,0.0,0.6908855751673768,0.0
-Naive Bayes,MultinomialNB(alpha=0.1),0.5836820083682008,0.0,0.5665614078256075,0.0
-RF,"RandomForestClassifier(n_estimators=128, n_jobs=8)",0.7824267782426778,0.0,0.6949210791172644,0.0
-SVM,SVC(max_iter=512),0.7907949790794979,0.0,0.7028915243280873,0.0
-baseline,Majority,0.7489539748953975,0.0,0.42822966507177035,0.0
+MLP,"MLPClassifier(batch_size=32, early_stopping=True, max_iter=512)",0.7885835095137421,0.0,0.7075336367233874,0.0
+Naive Bayes,MultinomialNB(),0.5940803382663847,0.0,0.5777571136321369,0.0
+RF,"RandomForestClassifier(max_features='sqrt', n_jobs=8)",0.7822410147991543,0.0,0.6978273139447617,0.0
+SVM,"SVC(degree=1, max_iter=1024)",0.7864693446088795,0.0,0.6999428438632523,0.0
+baseline,Majority,0.7463002114164905,0.0,0.42736077481840196,0.0

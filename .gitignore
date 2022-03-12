@@ -2,6 +2,7 @@ dataset/planilha/*.xlsx
 dataset/planilha/*.csv
 dataset/raw_docs/Preso/
 dataset/raw_docs/Solto/
+dataset/embeddings/
 dataset/proc_docs/
 .idea/
 *.log

@@ -47,7 +47,7 @@ warnings.filterwarnings("ignore")
 
 def modeling_w_text_only():
     # Load dataset
-    logging.info("="*50)
+    logging.info("=" * 50)
     logging.info("Modeling using only raw text")
     logging.info("Loading and preprocessing")
     dataset_df = pd.read_csv(PATH_PLANILHA_RAW_TEXT.replace("@ext", "csv"))
@@ -143,6 +143,7 @@ def modeling_w_attributes():
     run_model_selection = True
     if count > 1:
         run_model_selection = False
+
     base_modeling(X_train, X_test, y_train, y_test, feature_names, dict_results, type_modeling="attr",
                   run_model_selection=run_model_selection, sel_models=selected_models)
     print("")
@@ -160,7 +161,6 @@ def modeling_w_attributes():
 
         model = dict_results[model_name]["model"]
         data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1])
-        data.append([model_name, mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
     df = pd.DataFrame(data, columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
@@ -251,6 +251,51 @@ def modeling_w_attributes_and_text():
 
     output_path = os.path.join(PATH_RESULTS, "results_attr_text.@ext")
     plot_acc_f1(df, output_path)
+
+
+def build_result_tables():
+    df_attr_text = pd.read_csv("modeling/results/results_attr_text.csv")
+    df_text = pd.read_csv("modeling/results/results_text.csv")
+    df_attr = pd.read_csv("modeling/results/results_attr.csv")
+
+    model_list = sorted(["RF", "MLP", "Naive Bayes", "SVM", "baseline"])
+    data_acc = []
+    data_f1 = []
+
+    representations = {
+        "N-Grams + Attr": df_attr_text,
+        "Attr": df_attr,
+        "N-Grams": df_text
+    }
+
+    for repre in representations.keys():
+        line_acc, line_f1 = prepare_row_result(representations[repre], repre, model_list)
+        data_acc.append(line_acc)
+        data_f1.append(line_f1)
+
+    columns = ["Features"]
+    columns.extend(model_list)
+
+    df = pd.DataFrame(data_acc, columns=columns)
+    df.to_csv("modeling/results/final_results_acc.csv", index=False)
+    df.to_excel("modeling/results/final_results_acc.xlsx", index=False)
+
+    df = pd.DataFrame(data_f1, columns=columns)
+    df.to_csv("modeling/results/final_results_f1.csv", index=False)
+    df.to_excel("modeling/results/final_results_f1.xlsx", index=False)
+
+
+def prepare_row_result(df, representation, model_list):
+    line_acc = [representation]
+    line_f1 = [representation]
+
+    for model_name in model_list:
+        row = df.loc[df['Model'] == model_name]
+
+        line_acc.append(round(float(row["Mean Acc"]), 3))
+        line_f1.append(round(float(row["Mean F1"]), 3))
+
+    return line_acc, line_f1
 
 
 def plot_acc_f1(df, out_path):
@@ -384,11 +429,10 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         dict_results = dict()
 
     models = {
-        "RF": RandomForestClassifier(n_jobs=8),
-        "Adaboost": AdaBoostClassifier(n_estimators=100),
+        "RF": RandomForestClassifier(n_jobs=8, random_state=42),
         "Naive Bayes": MultinomialNB(),
-        "SVM": SVC(max_iter=2000),
-        "MLP": MLPClassifier(hidden_layer_sizes=(32, 32, 32), early_stopping=True, shuffle=True),
+        "SVM": SVC(max_iter=1024, random_state=42),
+        "MLP": MLPClassifier(early_stopping=True, shuffle=True, max_iter=512, random_state=42),
     }
 
     hyper_params = {
@@ -399,8 +443,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
             "coef0": [0, 0.01, 0.1, 0.5, 0.3, 0.7, 1],
             "decision_function_shape": ["ovo", "ovr"],
             "degree": [1, 3, 5],
-            "max_iter": [512, 1024, 2048],
-            "cache_size": [128, 256, 512]
+            "cache_size": [64, 128, 256, 512]
         },
         "MLP": {
             "hidden_layer_sizes": [
@@ -416,37 +459,23 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
             "solver": ["sgd", "adam", "lbfgs"],
             "learning_rate": ["constant", "invscaling", "adaptive"],
             "learning_rate_init": [0.01, 0.1, 0.5],
-            "max_iter": [256, 512]
         },
         "Naive Bayes": {
             "alpha": [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
             "fit_prior": [True, False],
         },
-        "Adaboost": {
-            "n_estimators": [64, 128, 256, 512, 1024],
-            "learning_rate": [0.1, 0.25, 0.5, 0.75, 1],
-            "algorithm": ["SAMME", "SAMME.R"],
-            "base_estimator": [
-                DecisionTreeClassifier(max_depth=1),
-                DecisionTreeClassifier(max_depth=2),
-                DecisionTreeClassifier(max_depth=3),
-            ],
-        },
         "RF": {
             "n_estimators": [64, 128, 256, 512, 1024, 2048],
-            "max_depth": [8, 16, 32, 64, 128],
-            "max_leaf_nodes": [64, 256, 512, 1024, 2048],
+            "max_depth": [8, 16, 32, 64],
+            "max_leaf_nodes": [64, 128, 256, 512, 1024, 2048],
             "criterion": ["gini", "entropy"],
             "max_features": ["sqrt", "log2"]
         }
     }
 
-    # eu diria remoção de outliers primeiro, depois feature selection,
-    # depois subsampling/oversampling, isso pra essas técnicas não influenciarem na tua seleção de features
-    # lembrando que se for usar cross-validation tem que deixar under/oversampling pra depois
     logging.info("Outliers removal")
     logging.info("Datasamples for each class before remove outliers")
-    model = IsolationForest(n_estimators=100, max_samples='auto', contamination=0.05, n_jobs=4)
+    model = IsolationForest(n_estimators=100, max_samples='auto', contamination=0.05, n_jobs=8)
 
     print(Counter(y_train))
     predictions = model.fit_predict(x_train, y_train)
@@ -472,10 +501,6 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     logging.info("Oversampling")
     logging.info("Datasamples for each class before oversampling")
     print(Counter(y_train))
-    # under = RandomUnderSampler(sampling_strategy=0.4)
-    # x_train, y_train = under.fit_resample(x_train, y_train)
-
-    # logging.info("Datasamples for each class after oversampling/undersampling")
 
 
     logging.info("Training and testing models")
@@ -538,7 +563,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     counter = Counter(y_test)
     most_common_label = counter.most_common(1)[0][0]  # in this case, it is "Preso"
 
-    y_pred = [most_common_label for i in range(len_y_test)] # Fake a baseline prediction with "Preso"
+    y_pred = [most_common_label for i in range(len_y_test)]  # Fake a baseline prediction with "Preso"
 
     acc = metrics.accuracy_score(y_test, y_pred)
     f1 = metrics.f1_score(y_test, y_pred, average="macro")
@@ -560,6 +585,7 @@ def run_data_modeling():
     modeling_w_text_only()
     modeling_w_attributes_and_text()
     modeling_w_attributes()
+    build_result_tables()
 
 
 if __name__ == "__main__":
