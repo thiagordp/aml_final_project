@@ -29,7 +29,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from xgboost import XGBClassifier
 import imblearn
 
@@ -45,10 +45,10 @@ nltk.download('punkt')
 warnings.filterwarnings("ignore")
 
 
-def modeling_w_text_only():
+def modeling_w_text_only(representation):
     # Load dataset
     logging.info("=" * 50)
-    logging.info("Modeling using only raw text")
+    logging.info("Modeling using only raw text:" + representation)
     logging.info("Loading and preprocessing")
     dataset_df = pd.read_csv(PATH_PLANILHA_RAW_TEXT.replace("@ext", "csv"))
     X = np.array(dataset_df["Conteúdo"])
@@ -68,15 +68,16 @@ def modeling_w_text_only():
     #     y_train_val, y_test = y[train_index], y[test_index]
 
     # print("Training/Testing using 5-fold cross-validation")
-    X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142)
+    X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142,
+                                                                train_size=0.8)
 
     selected_models = {}
 
     # Train set is used to grid search
     # Test set is used to final metric
 
-    X_train_bow, bow_model = extract_bow(X_train_val, method="TF-IDF", ngram=(1, 2))
-    X_test_bow = extract_bow(X_test, fitted_bow=bow_model)
+    X_train_bow, bow_model = extract_bow(X_train_val, method=representation, ngram=(1, 2))
+    X_test_bow = extract_bow(X_test, fitted_bow=bow_model, method=representation)
 
     scaler = StandardScaler(with_mean=False)
     X_train_bow = scaler.fit_transform(X_train_bow)
@@ -104,10 +105,10 @@ def modeling_w_text_only():
     df = pd.DataFrame(data, columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
-    df.to_csv(os.path.join(PATH_RESULTS, "results_text.csv"), index=False)
-    df.to_excel(os.path.join(PATH_RESULTS, "results_text.xlsx"), index=False)
+    df.to_csv(os.path.join(PATH_RESULTS, "results_text_"+ representation.lower() + ".csv"), index=False)
+    df.to_excel(os.path.join(PATH_RESULTS, "results_text_"+ representation.lower() + ".xlsx"), index=False)
 
-    output_path = os.path.join(PATH_RESULTS, "results_text.@ext")
+    output_path = os.path.join(PATH_RESULTS, "results_text_"+ representation.lower() + ".@ext")
     plot_acc_f1(df, output_path)
 
 
@@ -131,7 +132,8 @@ def modeling_w_attributes():
     # print("Features: ", feature_names)
     dict_results = {}
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142,
+                                                        train_size=0.8)
 
     count = 0
 
@@ -174,7 +176,7 @@ def modeling_w_attributes():
     # Plot F1
 
 
-def modeling_w_attributes_and_text():
+def modeling_w_attributes_and_text(representation):
     # load dataset
     logging.info("=" * 50)
     logging.info("Modeling using only attributes and text")
@@ -198,7 +200,8 @@ def modeling_w_attributes_and_text():
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, train_size=0.7)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142,
+                                                        train_size=0.8)
 
     count = 0
     selected_models = {
@@ -207,8 +210,8 @@ def modeling_w_attributes_and_text():
 
     logging.info("=" * 50)
 
-    x_train_bow, bow_model = extract_bow(X_train[:, 1], method="TF-IDF")
-    x_test_bow = extract_bow(X_test[:, 1], fitted_bow=bow_model)
+    x_train_bow, bow_model = extract_bow(X_train[:, 1], method=representation)
+    x_test_bow = extract_bow(X_test[:, 1], fitted_bow=bow_model, method=representation)
     bow_features = bow_model.get_feature_names_out()
 
     X_train = np.delete(X_train, 1, 1)  # Remove second column (Conteúdo)
@@ -246,17 +249,19 @@ def modeling_w_attributes_and_text():
     df = pd.DataFrame(data, columns=["Model", "Model details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
-    df.to_csv(os.path.join(PATH_RESULTS, "results_attr_text.csv"), index=False)
-    df.to_excel(os.path.join(PATH_RESULTS, "results_attr_text.xlsx"), index=False)
+    df.to_csv(os.path.join(PATH_RESULTS, "results_attr_text_" + representation.lower() + ".csv"), index=False)
+    df.to_excel(os.path.join(PATH_RESULTS, "results_attr_text_" + representation.lower() + ".xlsx"), index=False)
 
-    output_path = os.path.join(PATH_RESULTS, "results_attr_text.@ext")
+    output_path = os.path.join(PATH_RESULTS, "results_attr_text_" + representation.lower() + ".@ext")
     plot_acc_f1(df, output_path)
 
 
 def build_result_tables():
-    df_attr_text = pd.read_csv("modeling/results/results_attr_text.csv")
-    df_text = pd.read_csv("modeling/results/results_text.csv")
+    df_attr_text = pd.read_csv("modeling/results/results_attr_text_tf-idf.csv")
+    df_attr_text_emb = pd.read_csv("modeling/results/results_attr_text_emb.csv")
+    df_text = pd.read_csv("modeling/results/results_text_tf-idf.csv")
     df_attr = pd.read_csv("modeling/results/results_attr.csv")
+    df_text_emb = pd.read_csv("modeling/results/results_text_emb.csv")
 
     model_list = sorted(["RF", "MLP", "Naive Bayes", "SVM", "baseline"])
     data_acc = []
@@ -265,7 +270,9 @@ def build_result_tables():
     representations = {
         "N-Grams + Attr": df_attr_text,
         "Attr": df_attr,
-        "N-Grams": df_text
+        "N-Grams": df_text,
+        "Embeddings": df_text_emb,
+        "Embeddings + Attr": df_attr_text_emb
     }
 
     for repre in representations.keys():
@@ -430,7 +437,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
     models = {
         "RF": RandomForestClassifier(n_jobs=8, random_state=42),
-        "Naive Bayes": MultinomialNB(),
+        "Naive Bayes": GaussianNB(),
         "SVM": SVC(max_iter=1024, random_state=42),
         "MLP": MLPClassifier(early_stopping=True, shuffle=True, max_iter=512, random_state=42),
     }
@@ -438,8 +445,8 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     hyper_params = {
         "SVM": {
             "C": [1, 2, 4, 8, 16, 32, 64],
-            'gamma': [0.001, 0.0001, 0.01, 0.05, 0.1, 0.5, 1],
-            "kernel": ["rbf", "poly", "sigmoid", "linear"],
+            'gamma': [0.001, 0.01, 0.1, 1],
+            "kernel": ["rbf", "poly", "sigmoid"],
             "coef0": [0, 0.01, 0.1, 0.5, 0.3, 0.7, 1],
             "decision_function_shape": ["ovo", "ovr"],
             "degree": [1, 3, 5],
@@ -461,13 +468,12 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
             "learning_rate_init": [0.01, 0.1, 0.5],
         },
         "Naive Bayes": {
-            "alpha": [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-            "fit_prior": [True, False],
+            "var_smoothing": [1e-10, 1e-9, 1e-8, 1e-7, 1e-6],
         },
         "RF": {
-            "n_estimators": [64, 128, 256, 512, 1024, 2048],
+            "n_estimators": [64, 128, 256, 512, 1024],
             "max_depth": [8, 16, 32, 64],
-            "max_leaf_nodes": [64, 128, 256, 512, 1024, 2048],
+            "max_leaf_nodes": [128, 256, 512, 1024, 2048],
             "criterion": ["gini", "entropy"],
             "max_features": ["sqrt", "log2"]
         }
@@ -501,7 +507,6 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     logging.info("Oversampling")
     logging.info("Datasamples for each class before oversampling")
     print(Counter(y_train))
-
 
     logging.info("Training and testing models")
     count = 0
@@ -582,8 +587,10 @@ def run_data_modeling():
     logging.info("DATA MODELLING")
     plt.rc('axes', axisbelow=True)
 
-    modeling_w_text_only()
-    modeling_w_attributes_and_text()
+    modeling_w_text_only("TF-IDF")
+    modeling_w_text_only("EMB")
+    modeling_w_attributes_and_text("TF-IDF")
+    modeling_w_attributes_and_text("EMB")
     modeling_w_attributes()
     build_result_tables()
 

@@ -1,6 +1,0 @@
-Model,Model details,Mean Acc,Std Acc,Mean F1,Std F1
-MLP,"MLPClassifier(batch_size=32, early_stopping=True, max_iter=512)",0.8119834710743802,0.0,0.7297366951591426,0.0
-Naive Bayes,MultinomialNB(),0.6425619834710744,0.0,0.625606424409896,0.0
-RF,"RandomForestClassifier(max_features='log2', n_jobs=8)",0.8099173553719008,0.0,0.7079365079365079,0.0
-SVM,"SVC(degree=1, max_iter=1024)",0.8202479338842975,0.0,0.7326934430288141,0.0
-baseline,Majority,0.756198347107438,0.0,0.43058823529411766,0.0

@@ -1,6 +1,7 @@
 Model,Model Details,Mean Acc,Std Acc,Mean F1,Std F1
-MLP,"MLPClassifier(batch_size=64, early_stopping=True, max_iter=512)",0.7438524590163934,0.0,0.5441467697941187,0.0
-Naive Bayes,MultinomialNB(),0.5942622950819673,0.0,0.5287093942054434,0.0
-RF,"RandomForestClassifier(max_features='sqrt', n_jobs=8)",0.7315573770491803,0.0,0.547966030985059,0.0
-SVM,"SVC(degree=1, max_iter=1024)",0.7397540983606558,0.0,0.4735974858793053,0.0
-baseline,Majority,0.7459016393442623,0.0,0.4272300469483568,0.0
+MLP,"MLPClassifier(early_stopping=True, learning_rate_init=0.01, max_iter=512,
+              random_state=42)",0.7480719794344473,0.0,0.5953078556263269,0.0
+Naive Bayes,GaussianNB(var_smoothing=1e-06),0.2699228791773779,0.0,0.23851668045216434,0.0
+RF,"RandomForestClassifier(max_features='sqrt', n_jobs=8, random_state=42)",0.7403598971722365,0.0,0.576430889312936,0.0
+SVM,"SVC(cache_size=64, max_iter=1024, random_state=42)",0.7377892030848329,0.0,0.47582435003170576,0.0
+baseline,Majority,0.7429305912596401,0.0,0.4262536873156342,0.0

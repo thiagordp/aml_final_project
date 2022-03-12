@@ -1,0 +1,6 @@
+Features,MLP,Naive Bayes,RF,SVM,baseline
+N-Grams + Attr,0.703,0.655,0.706,0.7,0.43
+Attr,0.595,0.239,0.576,0.476,0.426
+N-Grams,0.688,0.691,0.699,0.719,0.426
+Embeddings,0.72,0.59,0.587,0.648,0.426
+Embeddings + Attr,0.66,0.236,0.535,0.627,0.428

@@ -1,0 +1,7 @@
+Model,Model details,Mean Acc,Std Acc,Mean F1,Std F1
+MLP,"MLPClassifier(early_stopping=True, learning_rate_init=0.01, max_iter=512,
+              random_state=42)",0.7545219638242894,0.0,0.6600649080469335,0.0
+Naive Bayes,GaussianNB(var_smoothing=1e-06),0.268733850129199,0.0,0.2360900892103593,0.0
+RF,"RandomForestClassifier(max_features='sqrt', n_jobs=8, random_state=42)",0.7545219638242894,0.0,0.5346968220419425,0.0
+SVM,"SVC(cache_size=64, max_iter=1024, random_state=42)",0.7751937984496124,0.0,0.6268660024602972,0.0
+baseline,Majority,0.7467700258397932,0.0,0.4275147928994083,0.0
