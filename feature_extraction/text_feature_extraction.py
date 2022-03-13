@@ -11,7 +11,7 @@ class EmbeddingsVectorizer:
 
     def __init__(self, max_features=20000):
         temp = get_tmpfile("glove2word2vec.txt")
-        glove2word2vec("dataset/embeddings/glove_pretrained_legal_1Bi_temp.txt", temp)
+        glove2word2vec("dataset/embeddings/glove_pretrained_legal_1Bi.txt", temp)
 
         word_vectors = KeyedVectors.load_word2vec_format(temp, binary=False)
         self.glove_embeddings = word_vectors

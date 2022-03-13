@@ -3,6 +3,8 @@
 """
 import warnings
 
+from sklearn.metrics import confusion_matrix
+
 warnings.simplefilter("ignore")
 
 import logging
@@ -85,7 +87,7 @@ def modeling_w_text_only(representation):
     run_model_selection = True
 
     base_modeling(X_train_bow, X_test_bow, y_train_val, y_test, bow_model.get_feature_names_out(),
-                  dict_results, type_modeling="text", run_model_selection=run_model_selection,
+                  dict_results, type_modeling="text_" + representation.lower(), run_model_selection=run_model_selection,
                   sel_models=selected_models)
 
     print("")
@@ -100,9 +102,11 @@ def modeling_w_text_only(representation):
         mean_f1 = np.mean(f1s)
         std_dev_f1 = np.std(f1s)
         model = dict_results[model_name]["model"]
-        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1])
+        cm = dict_results[model_name]["cm"]
+        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1, cm])
 
-    df = pd.DataFrame(data, columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df = pd.DataFrame(data,
+                      columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1", "Conf Matrix"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
     df.to_csv(os.path.join(PATH_RESULTS, "results_text_"+ representation.lower() + ".csv"), index=False)
@@ -161,10 +165,12 @@ def modeling_w_attributes():
         mean_f1 = np.median(f1s)
         std_dev_f1 = np.std(f1s)
 
-        model = dict_results[model_name]["model"]
-        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1])
 
-    df = pd.DataFrame(data, columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+        model = dict_results[model_name]["model"]
+        cm = dict_results[model_name]["cm"]
+        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1, cm])
+
+    df = pd.DataFrame(data, columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1", "Conf Matrix"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
     df.to_csv(os.path.join(PATH_RESULTS, "results_attr.csv"), index=False)
@@ -192,6 +198,7 @@ def modeling_w_attributes_and_text(representation):
 
     X = np.array(features_df)
     y = np.array(dataset_df["Resultado Doc"])
+
     # print("Nan:", list(features_df.isnull().sum()))
 
     feature_names = list(features_df.columns)
@@ -231,7 +238,7 @@ def modeling_w_attributes_and_text(representation):
         run_model_selection = False
 
     base_modeling(X_train, X_test, y_train, y_test, features_names, dict_results, features_to_select=1000,
-                  type_modeling="attr_text", run_model_selection=run_model_selection, sel_models=selected_models)
+                  type_modeling="attr_text_" + representation.lower(), run_model_selection=run_model_selection, sel_models=selected_models)
 
     print("")
 
@@ -244,9 +251,11 @@ def modeling_w_attributes_and_text(representation):
         mean_f1 = np.mean(f1s)
         std_dev_f1 = np.std(f1s)
         model = dict_results[model_name]["model"]
-        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1])
+        cm = dict_results[model_name]["cm"]
+        data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1, cm])
 
-    df = pd.DataFrame(data, columns=["Model", "Model details", "Mean Acc", "Std Acc", "Mean F1", "Std F1"])
+    df = pd.DataFrame(data,
+                      columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1", "Conf Matrix"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
     df.to_csv(os.path.join(PATH_RESULTS, "results_attr_text_" + representation.lower() + ".csv"), index=False)
@@ -494,7 +503,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     x_test = x_test[outliers_index]
     y_test = y_test[outliers_index]
 
-    if x_train.shape[1] >= 500:
+    if x_train.shape[1] > 100:
         logging.info("Running Feature selection")
         selectFS = SelectKBest(chi2, k=100)
         x_train = selectFS.fit_transform(x_train, y_train)
@@ -514,7 +523,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
         logging.info("-" * 50)
         if model_name not in dict_results.keys():
-            dict_results[model_name] = {"acc": [], "f1": []}
+            dict_results[model_name] = {"acc": [], "f1": [], "cm": []}
 
         model = models[model_name]
         hyper = hyper_params[model_name]
@@ -523,12 +532,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         cv = GridSearchCV(model, hyper, cv=5, verbose=3, n_jobs=8, scoring="f1_macro")
         cv.fit(x_train, y_train)
 
-        over = SMOTE(sampling_strategy=0.4)
-        x_train_new, y_train_new = over.fit_resample(x_train, y_train)
-        counter = Counter(y_train_new)
-
         models[model_name] = cv.best_estimator_
-        models[model_name].fit(x_train_new, y_train_new)
 
         logging.info("Best parameters set found on training set:")
         logging.info(cv.best_params_)
@@ -541,12 +545,12 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
         model = sel_models[model_name]
 
-        logging.info("Training %s classifier" % model_name)
+        logging.info("Testing %s classifier" % model_name)
         logging.info(model)
 
         y_pred = model.predict(x_test)
 
-        if model_name in ["Adaboost"]:
+        if model_name in ["RF"]:
             features_imp = []
             for feat, imp in zip(features, model.feature_importances_):
                 features_imp.append([feat, imp])
@@ -557,8 +561,11 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         acc = metrics.accuracy_score(y_test, y_pred)
         f1 = metrics.f1_score(y_test, y_pred, average="macro")
 
+        cm = confusion_matrix(y_test, y_pred)
+
         dict_results[model_name]["acc"].append(acc)
         dict_results[model_name]["f1"].append(f1)
+        dict_results[model_name]["cm"].append(cm)
         dict_results[model_name]["model"] = str(model)
 
         logging.info("Acc: %.4f \tF1: %.4f" % (acc, f1))
@@ -572,9 +579,11 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
     acc = metrics.accuracy_score(y_test, y_pred)
     f1 = metrics.f1_score(y_test, y_pred, average="macro")
-    dict_results["baseline"] = {"acc": [], "f1": []}
+    cm = confusion_matrix(y_test, y_pred)
+    dict_results["baseline"] = {"acc": [], "f1": [], "cm":[]}
     dict_results["baseline"]["acc"].append(acc)
     dict_results["baseline"]["f1"].append(f1)
+    dict_results["baseline"]["cm"].append(cm)
     dict_results["baseline"]["model"] = "Majority"
     logging.info("Selected models")
     logging.info(sel_models)
