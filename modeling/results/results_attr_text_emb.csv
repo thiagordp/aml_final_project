@@ -1,7 +1,10 @@
 Model,Model details,Mean Acc,Std Acc,Mean F1,Std F1
-MLP,"MLPClassifier(early_stopping=True, learning_rate_init=0.01, max_iter=512,
-              random_state=42)",0.7545219638242894,0.0,0.6600649080469335,0.0
-Naive Bayes,GaussianNB(var_smoothing=1e-06),0.268733850129199,0.0,0.2360900892103593,0.0
-RF,"RandomForestClassifier(max_features='sqrt', n_jobs=8, random_state=42)",0.7545219638242894,0.0,0.5346968220419425,0.0
-SVM,"SVC(cache_size=64, max_iter=1024, random_state=42)",0.7751937984496124,0.0,0.6268660024602972,0.0
-baseline,Majority,0.7467700258397932,0.0,0.4275147928994083,0.0
+MLP,"MLPClassifier(batch_size=128, early_stopping=True, hidden_layer_sizes=(32, 32),
+              learning_rate_init=0.01, max_iter=512, random_state=42)",0.7597911227154047,0.0,0.6297183690626313,0.0
+Naive Bayes,GaussianNB(var_smoothing=1e-06),0.26370757180156656,0.0,0.2309894053315106,0.0
+RF,"RandomForestClassifier(criterion='entropy', max_depth=16, max_features='sqrt',
+                       max_leaf_nodes=256, n_estimators=64, n_jobs=8,
+                       random_state=42)",0.7806788511749347,0.0,0.590520313613685,0.0
+SVM,"SVC(C=4, cache_size=64, coef0=0.01, decision_function_shape='ovo', degree=1,
+    gamma=0.01, kernel='poly', max_iter=1024, random_state=42)",0.7754569190600522,0.0,0.6828004622496149,0.0
+baseline,Majority,0.7467362924281984,0.0,0.42750373692077726,0.0
