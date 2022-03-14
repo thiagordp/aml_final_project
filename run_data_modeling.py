@@ -22,7 +22,7 @@ from matplotlib.patches import Patch
 from numpy import where
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, BaggingClassifier, \
     IsolationForest
-from sklearn.feature_selection import RFECV, SelectKBest, chi2, SelectFromModel
+from sklearn.feature_selection import RFECV, SelectKBest, chi2, SelectFromModel, mutual_info_classif
 from sklearn.inspection import permutation_importance
 from sklearn import metrics
 from sklearn.linear_model import LinearRegression
@@ -57,17 +57,6 @@ def modeling_w_text_only(representation):
     y = np.array(dataset_df["Resultado Doc"])
     print(Counter(y))
     dict_results = {}
-
-    k_fold = 5
-    # skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=142)
-    #
-    # count = 1
-    # for train_index, test_index in skf.split(X, y):
-    #
-    #     logging.info("="*50)
-    #     logging.info("Cross val fold %d of %d" % (count, k_fold))
-    #     X_train_val, X_test = X[train_index], X[test_index]
-    #     y_train_val, y_test = y[train_index], y[test_index]
 
     # print("Training/Testing using 5-fold cross-validation")
     X_train_val, X_test, y_train_val, y_test = train_test_split(X, y, stratify=y, shuffle=True, random_state=142,
@@ -109,10 +98,10 @@ def modeling_w_text_only(representation):
                       columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1", "Conf Matrix"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
-    df.to_csv(os.path.join(PATH_RESULTS, "results_text_"+ representation.lower() + ".csv"), index=False)
-    df.to_excel(os.path.join(PATH_RESULTS, "results_text_"+ representation.lower() + ".xlsx"), index=False)
+    df.to_csv(os.path.join(PATH_RESULTS, "results_text_" + representation.lower() + ".csv"), index=False)
+    df.to_excel(os.path.join(PATH_RESULTS, "results_text_" + representation.lower() + ".xlsx"), index=False)
 
-    output_path = os.path.join(PATH_RESULTS, "results_text_"+ representation.lower() + ".@ext")
+    output_path = os.path.join(PATH_RESULTS, "results_text_" + representation.lower() + ".@ext")
     plot_acc_f1(df, output_path)
 
 
@@ -165,12 +154,12 @@ def modeling_w_attributes():
         mean_f1 = np.median(f1s)
         std_dev_f1 = np.std(f1s)
 
-
         model = dict_results[model_name]["model"]
         cm = dict_results[model_name]["cm"]
         data.append([model_name, str(model), mean_acc, std_dev_acc, mean_f1, std_dev_f1, cm])
 
-    df = pd.DataFrame(data, columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1", "Conf Matrix"])
+    df = pd.DataFrame(data,
+                      columns=["Model", "Model Details", "Mean Acc", "Std Acc", "Mean F1", "Std F1", "Conf Matrix"])
     df.sort_values(by=["Model"], ascending=True, inplace=True)
 
     df.to_csv(os.path.join(PATH_RESULTS, "results_attr.csv"), index=False)
@@ -238,7 +227,8 @@ def modeling_w_attributes_and_text(representation):
         run_model_selection = False
 
     base_modeling(X_train, X_test, y_train, y_test, features_names, dict_results, features_to_select=1000,
-                  type_modeling="attr_text_" + representation.lower(), run_model_selection=run_model_selection, sel_models=selected_models)
+                  type_modeling="attr_text_" + representation.lower(), run_model_selection=run_model_selection,
+                  sel_models=selected_models)
 
     print("")
 
@@ -382,7 +372,6 @@ def plot_acc_f1(df, out_path):
     labels_techs = [""]
 
     for tech in techs:
-        labels_techs.append("")
         labels_techs.append(tech)
 
     ax1.set_xticklabels(labels_techs, rotation=20, fontsize=12)
@@ -505,7 +494,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
     if x_train.shape[1] > 100:
         logging.info("Running Feature selection")
-        selectFS = SelectKBest(chi2, k=100)
+        selectFS = SelectKBest(mutual_info_classif, k=100)
         x_train = selectFS.fit_transform(x_train, y_train)
         x_test = selectFS.transform(x_test)
         supports = selectFS.get_support(indices=True)
@@ -515,7 +504,15 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
     logging.info("Oversampling")
     logging.info("Datasamples for each class before oversampling")
+    counter = Counter(y_train)
     print(Counter(y_train))
+    # under = RandomUnderSampler(sampling_strategy=0.4)
+    # x_train, y_train = under.fit_resample(x_train, y_train)
+    over = SMOTE(sampling_strategy=0.4)
+    x_train, y_train = over.fit_resample(x_train, y_train)
+    logging.info("Datasamples for each class after oversampling/undersampling")
+    counter = Counter(y_train)
+    print(counter)
 
     logging.info("Training and testing models")
     count = 0
@@ -566,7 +563,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         dict_results[model_name]["acc"].append(acc)
         dict_results[model_name]["f1"].append(f1)
         dict_results[model_name]["cm"].append(cm)
-        dict_results[model_name]["model"] = str(model)
+        dict_results[model_name]["model"] = str(cv.best_params_)
 
         logging.info("Acc: %.4f \tF1: %.4f" % (acc, f1))
 
@@ -580,7 +577,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     acc = metrics.accuracy_score(y_test, y_pred)
     f1 = metrics.f1_score(y_test, y_pred, average="macro")
     cm = confusion_matrix(y_test, y_pred)
-    dict_results["baseline"] = {"acc": [], "f1": [], "cm":[]}
+    dict_results["baseline"] = {"acc": [], "f1": [], "cm": []}
     dict_results["baseline"]["acc"].append(acc)
     dict_results["baseline"]["f1"].append(f1)
     dict_results["baseline"]["cm"].append(cm)
