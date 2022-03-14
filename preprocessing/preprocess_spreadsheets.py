@@ -84,10 +84,10 @@ def process_col_values(df: pd.DataFrame):
     df["Enquadramento"] = df["Enquadramento"].apply(lambda x: str(x).upper())
     df["Enquadramento"] = df["Enquadramento"].replace(["NAN"], "DESCONHECIDO")
 
-    # df['data_documento'] = pd.to_datetime(df['data_documento'], format="%d/%m/%y")
+    df['data_documento'] = pd.to_datetime(df['data_documento'], errors="raise")
     df['data_protocolo'] = pd.to_datetime(df['data_protocolo'], format="%d/%m/%Y")
 
-    #df['ano_documento'] = df['data_documento'].dt.year
+    df['ano_documento'] = df['data_documento'].dt.year
     df['assuntos'].fillna("Desconhecido", inplace=True)
     df['Quant'].fillna(1, inplace=True)
     df["Resultado Doc Num"] = np.where(df['Resultado Doc'] == "Solto", 1, 0)

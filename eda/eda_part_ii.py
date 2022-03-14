@@ -3,6 +3,7 @@ EDA after preprocessing part I
 
 @date December 02, 2021
 """
+import logging
 import os
 import time
 from collections import Counter
@@ -149,6 +150,7 @@ def most_frequent_rappourter():
     for key in dict_rappourter.keys():
         data.append([key, dict_rappourter[key]])
     df = pd.DataFrame(data, columns=["Relator", "Contagem"])
+    df.to_excel("results/eda_ii/rapporteur_quant.xlsx", index=False)
     fig, axes = plt.subplots(1, 1, figsize=(14, 9))
     plt.title("Rapporteur Histogram")
     sns.barplot(data=df, x="Contagem", y="Relator", ax=axes, palette=sns.color_palette(['#1f77b4']))
@@ -210,16 +212,19 @@ def most_frequent_subjects():
                 dict_subject[token] = 1
             else:
                 dict_subject[token] += 1
+
+    print("Subjects " ,len(dict_subject.keys()))
     k = Counter(dict_subject)
 
     # Finding 3 highest values
-    high = k.most_common(20)
+    high = k.most_common(150)
     data = []
 
     for key in high:
         data.append([key[0], key[1]])
 
     df = pd.DataFrame(data, columns=["Assunto", "Contagem"])
+    df.to_excel("subject_count.xlsx", index=False)
     fig, ax = plt.subplots(1, 1, figsize=(14, 9))
     ax.grid(ls="--")
     plt.title("Rapporteur Histogram")
@@ -254,6 +259,7 @@ def crimes_per_document_per_label():
         for rapp in sorted(dict_rappourter[label].keys()):
             data.append([rapp, label, dict_rappourter[label][rapp]])
     df = pd.DataFrame(data, columns=["Quant", "Resultado", "Contagem"])
+    df.to_excel("results/eda_ii/crime_quant.xlsx", index=False)
     fig, axes = plt.subplots(1, 1, figsize=(14, 9))
 
     plt.title("Quantity Histogram by Label")
@@ -369,12 +375,12 @@ def correlation_subject_result():
 
 
 def eda_part_ii():
-    # most_frequent_crimes()
-    # most_frequent_crimes_by_year()
-    # most_frequent_rappourter()
-    # most_frequent_rappourter_by_label()
-    # most_frequent_subjects()
-    # crimes_per_document_per_label()
+    #most_frequent_crimes()
+    #most_frequent_crimes_by_year()
+    #most_frequent_rappourter()
+    #most_frequent_rappourter_by_label()
+    #most_frequent_subjects()
+    #crimes_per_document_per_label()
 
     # bag_of_words(preprocess_text=True)
     correlation_qty_crimes_result()

@@ -4,6 +4,7 @@
 import logging
 import os
 import time
+from collections import Counter
 
 import pandas as pd
 import seaborn as sns
@@ -116,6 +117,7 @@ def eda_part_i():
 
     df = excel_file.parse("metadata_import")
     df = df.sort_values(by='origem')
+    print("Count origin:", Counter(df["origem"]))
     logging.info("Columns and types from metadata_import")
     logging.info(df.info())
     logging.info("First 5 rows")
