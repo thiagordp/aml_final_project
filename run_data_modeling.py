@@ -442,13 +442,13 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
     hyper_params = {
         "SVM": {
-            "C": [1, 2, 4, 8, 16, 32, 64],
-            'gamma': [0.001, 0.01, 0.1, 1],
-            "kernel": ["rbf", "poly", "sigmoid"],
-            "coef0": [0, 0.01, 0.1, 0.5, 0.3, 0.7, 1],
+            "C": [1, 8, 16, 32, 64],
+            'gamma': [0.001, 0.01],
+            "kernel": ["rbf", "poly"],
+            "coef0": [0, 0.01, 0.1, 0.7],
             "decision_function_shape": ["ovo", "ovr"],
-            "degree": [1, 3, 5],
-            "cache_size": [64, 128, 256, 512]
+            "degree": [1, 3],
+            "cache_size": [32, 64]
         },
         "MLP": {
             "hidden_layer_sizes": [
@@ -459,19 +459,19 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
                 (64, 64, 64),
                 (64, 64, 64, 64),
             ],
-            "activation": ["logistic", "relu", "tanh", "identity"],
+            "activation": ["relu", "tanh"],
             "batch_size": [32, 64, 128],
-            "solver": ["sgd", "adam", "lbfgs"],
-            "learning_rate": ["constant", "invscaling", "adaptive"],
-            "learning_rate_init": [0.01, 0.1, 0.5],
+            "solver": ["sgd", "adam"],
+            "learning_rate": ["constant", "adaptive"],
+            "learning_rate_init": [0.01, 0.1, 0.2],
         },
         "Naive Bayes": {
             "var_smoothing": [1e-10, 1e-9, 1e-8, 1e-7, 1e-6],
         },
         "RF": {
-            "n_estimators": [64, 128, 256, 512, 1024],
-            "max_depth": [8, 16, 32, 64],
-            "max_leaf_nodes": [128, 256, 512, 1024, 2048],
+            "n_estimators": [64, 256, 512, 1024],
+            "max_depth": [16, 32, 64],
+            "max_leaf_nodes": [128, 256, 512],
             "criterion": ["gini", "entropy"],
             "max_features": ["sqrt", "log2"]
         }
@@ -494,7 +494,12 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
 
     if x_train.shape[1] > 100:
         logging.info("Running Feature selection")
-        selectFS = SelectKBest(mutual_info_classif, k=100)
+        if type_modeling.find("emb") >= 0:
+            logging.info("Mutual information FS")
+            selectFS = SelectKBest(mutual_info_classif, k=100)
+        else:
+            selectFS = SelectKBest(chi2, k=100)
+            logging.info("Chi2 FS")
         x_train = selectFS.fit_transform(x_train, y_train)
         x_test = selectFS.transform(x_test)
         supports = selectFS.get_support(indices=True)
