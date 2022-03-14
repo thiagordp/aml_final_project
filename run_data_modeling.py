@@ -55,7 +55,7 @@ def modeling_w_text_only(representation):
     dataset_df = pd.read_csv(PATH_PLANILHA_RAW_TEXT.replace("@ext", "csv"))
     X = np.array(dataset_df["Conteúdo"])
     y = np.array(dataset_df["Resultado Doc"])
-
+    print(Counter(y))
     dict_results = {}
 
     k_fold = 5

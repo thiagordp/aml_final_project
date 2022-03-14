@@ -39,7 +39,7 @@ def run_pipeline():
     # Second EDA
     eda_part_ii()
 
-    run_data_modeling()
+    #run_data_modeling()
 
 if __name__ == '__main__':
     setup_logging()
