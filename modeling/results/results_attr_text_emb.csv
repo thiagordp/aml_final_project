@@ -1,7 +1,11 @@
-Model,Model details,Mean Acc,Std Acc,Mean F1,Std F1
-MLP,"MLPClassifier(early_stopping=True, learning_rate_init=0.01, max_iter=512,
-              random_state=42)",0.7630208333333334,0.0,0.6090181818181818,0.0
-Naive Bayes,GaussianNB(var_smoothing=1e-06),0.2942708333333333,0.0,0.2692904539549907,0.0
-RF,"RandomForestClassifier(max_features='sqrt', n_jobs=8, random_state=42)",0.7604166666666666,0.0,0.5517433893315739,0.0
-SVM,"SVC(cache_size=64, max_iter=1024, random_state=42)",0.7682291666666666,0.0,0.5634524250514135,0.0
-baseline,Majority,0.7473958333333334,0.0,0.4277198211624441,0.0
+Model,Model Details,Mean Acc,Std Acc,Mean F1,Std F1,Conf Matrix
+MLP,{'learning_rate_init': 0.01},0.7382198952879581,0.0,0.6772776426061098,0.0,"[array([[224,  62],
+       [ 38,  58]])]"
+Naive Bayes,{'var_smoothing': 1e-07},0.25392670157068065,0.0,0.2090407794075979,0.0,"[array([[  3, 283],
+       [  2,  94]])]"
+RF,{'max_features': 'sqrt'},0.7722513089005235,0.0,0.5728442347981441,0.0,"[array([[278,   8],
+       [ 79,  17]])]"
+SVM,{'decision_function_shape': 'ovo'},0.7670157068062827,0.0,0.574359937402191,0.0,"[array([[275,  11],
+       [ 78,  18]])]"
+baseline,Majority,0.7486910994764397,0.0,0.4281437125748503,0.0,"[array([[286,   0],
+       [ 96,   0]])]"
