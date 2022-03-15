@@ -1,11 +1,11 @@
 Model,Model Details,Mean Acc,Std Acc,Mean F1,Std F1,Conf Matrix
-MLP,"{'activation': 'tanh', 'batch_size': 128, 'hidden_layer_sizes': (64, 64), 'learning_rate': 'constant', 'learning_rate_init': 0.01, 'solver': 'adam'}",0.7275064267352185,0.0,0.5666512527324702,0.0,"[array([[260,  29],
-       [ 77,  23]])]"
-Naive Bayes,{'var_smoothing': 1e-06},0.2750642673521851,0.0,0.24550181578078573,0.0,"[array([[ 15, 274],
-       [  8,  92]])]"
-RF,"{'criterion': 'gini', 'max_depth': 32, 'max_features': 'sqrt', 'max_leaf_nodes': 256, 'n_estimators': 64}",0.7223650385604113,0.0,0.5446939483266863,0.0,"[array([[262,  27],
-       [ 81,  19]])]"
-SVM,"{'C': 64, 'cache_size': 32, 'coef0': 0, 'decision_function_shape': 'ovo', 'degree': 1, 'gamma': 0.01, 'kernel': 'rbf'}",0.7197943444730077,0.0,0.5428808607436636,0.0,"[array([[261,  28],
-       [ 81,  19]])]"
-baseline,Majority,0.7429305912596401,0.0,0.4262536873156342,0.0,"[array([[289,   0],
-       [100,   0]])]"
+MLP,"{'activation': 'relu', 'batch_size': 32, 'hidden_layer_sizes': (64, 64, 64, 64), 'learning_rate': 'adaptive', 'learning_rate_init': 0.2, 'solver': 'sgd'}",0.7295918367346939,0.0,0.49881796690307323,0.0,"[array([[276,  14],
+       [ 92,  10]])]"
+Naive Bayes,{'var_smoothing': 1e-07},0.2729591836734694,0.0,0.23883495145631067,0.0,"[array([[ 12, 278],
+       [  7,  95]])]"
+RF,"{'criterion': 'gini', 'max_depth': 32, 'max_features': 'sqrt', 'max_leaf_nodes': 512, 'n_estimators': 64}",0.7066326530612245,0.0,0.5869638914085191,0.0,"[array([[244,  46],
+       [ 69,  33]])]"
+SVM,"{'C': 64, 'cache_size': 32, 'coef0': 0, 'decision_function_shape': 'ovo', 'degree': 1, 'gamma': 0.01, 'kernel': 'rbf'}",0.7219387755102041,0.0,0.5740107474352711,0.0,"[array([[257,  33],
+       [ 76,  26]])]"
+baseline,Majority,0.7397959183673469,0.0,0.42521994134897356,0.0,"[array([[290,   0],
+       [102,   0]])]"

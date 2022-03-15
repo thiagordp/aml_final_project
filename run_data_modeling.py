@@ -304,6 +304,46 @@ def prepare_row_result(df, representation, model_list):
     return line_acc, line_f1
 
 
+def build_hyperparam_tables():
+    df_attr_text = pd.read_csv("modeling/results/results_attr_text_tf-idf.csv")
+    df_attr_text_emb = pd.read_csv("modeling/results/results_attr_text_emb.csv")
+    df_text = pd.read_csv("modeling/results/results_text_tf-idf.csv")
+    df_attr = pd.read_csv("modeling/results/results_attr.csv")
+    df_text_emb = pd.read_csv("modeling/results/results_text_emb.csv")
+
+    model_list = sorted(["RF", "MLP", "Naive Bayes", "SVM", "baseline"])
+    data_acc = []
+
+    representations = {
+        "N-Grams + Attr": df_attr_text,
+        "Attr": df_attr,
+        "N-Grams": df_text,
+        "Embeddings": df_text_emb,
+        "Embeddings + Attr": df_attr_text_emb
+    }
+
+    for repre in representations.keys():
+        line = prepare_row_hyperparam(representations[repre], repre, model_list)
+        data_acc.append(line)
+
+    columns = ["Features"]
+    columns.extend(model_list)
+
+    df = pd.DataFrame(data_acc, columns=columns)
+    df.to_csv("modeling/results/final_hyperparam.csv", index=False)
+    df.to_excel("modeling/results/final_hyperparam.xlsx", index=False)
+
+
+def prepare_row_hyperparam(df, representation, model_list):
+    line = [representation]
+
+    for model_name in model_list:
+        row = df.loc[df['Model'] == model_name]
+        line.append(row["Model Details"].item())
+
+    return line
+
+
 def plot_acc_f1(df, out_path):
     """
     Código para plotar acc and F1 em um mesmo gráfico
@@ -598,12 +638,13 @@ def run_data_modeling():
     logging.info("DATA MODELLING")
     plt.rc('axes', axisbelow=True)
 
-    modeling_w_text_only("TF-IDF")
-    modeling_w_text_only("EMB")
-    modeling_w_attributes_and_text("TF-IDF")
-    modeling_w_attributes_and_text("EMB")
-    modeling_w_attributes()
-    build_result_tables()
+    # modeling_w_text_only("TF-IDF")
+    # modeling_w_text_only("EMB")
+    # modeling_w_attributes_and_text("TF-IDF")
+    # modeling_w_attributes_and_text("EMB")
+    # modeling_w_attributes()
+    # build_result_tables()
+    build_hyperparam_tables()
 
 
 if __name__ == "__main__":
