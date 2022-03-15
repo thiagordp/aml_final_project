@@ -15,7 +15,7 @@ from collections import Counter
 import matplotlib
 import numpy as np
 import pandas as pd
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 from matplotlib import pyplot as plt
 from matplotlib.patches import Patch
@@ -448,7 +448,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
             "coef0": [0, 0.01, 0.1, 0.7],
             "decision_function_shape": ["ovo", "ovr"],
             "degree": [1, 3],
-            "cache_size": [32, 64]
+            "cache_size": [32, 64, 128]
         },
         "MLP": {
             "hidden_layer_sizes": [
@@ -471,7 +471,7 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
         "RF": {
             "n_estimators": [64, 256, 512, 1024],
             "max_depth": [16, 32, 64],
-            "max_leaf_nodes": [128, 256, 512],
+            "max_leaf_nodes": [128, 256, 512, 1024],
             "criterion": ["gini", "entropy"],
             "max_features": ["sqrt", "log2"]
         }
@@ -510,14 +510,14 @@ def base_modeling(x_train, x_test, y_train, y_test, features_names, dict_results
     logging.info("Oversampling")
     logging.info("Datasamples for each class before oversampling")
     counter = Counter(y_train)
-    print(Counter(y_train))
+    logging.info(Counter(y_train))
     # under = RandomUnderSampler(sampling_strategy=0.4)
     # x_train, y_train = under.fit_resample(x_train, y_train)
-    over = SMOTE(sampling_strategy=0.4)
+    over = RandomOverSampler(sampling_strategy=0.4)
     x_train, y_train = over.fit_resample(x_train, y_train)
     logging.info("Datasamples for each class after oversampling/undersampling")
     counter = Counter(y_train)
-    print(counter)
+    logging.info(counter)
 
     logging.info("Training and testing models")
     count = 0

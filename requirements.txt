@@ -4,3 +4,10 @@ matplotlib
 nltk
 tqdm
 wordcloud
+scipy
+numpy
+scikit-learn
+shap
+gensim
+xgboost
+imblearn
